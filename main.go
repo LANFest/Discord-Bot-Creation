@@ -1,16 +1,20 @@
-package main
+package main //declaring that this is the main package
 
 import (
 	"fmt"
 	"io/ioutil"
 	"strings"
-
+	
 	"github.com/LANFest/Discord-Bot-Creation/commands/admin"
 	"github.com/LANFest/Discord-Bot-Creation/commands/chapter"
 	"github.com/LANFest/Discord-Bot-Creation/data"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
-
 	"github.com/bwmarrin/discordgo"
+)
+
+var (
+	commandPrefix string
+	botID         string
 )
 
 func main() {
@@ -24,6 +28,13 @@ func main() {
 	utils.Assert("error creating discord session", err)
 
 	discord.AddHandler(coreMessageHandler)
+
+	user, err := discord.User("@me")                //grabbing account information
+	errCheck("error retrieving account", err)       //check if error occurred
+
+	botID = user.ID                    //botID is a variable set to the bots information
+	discord.AddHandler(commandHandler) // a listener that when it picks up a message create it runs the function
+
 	discord.AddHandler(func(discord *discordgo.Session, ready *discordgo.Ready) {
 		err = discord.UpdateStatus(0, "Insaniquarium!")
 		if err != nil {
@@ -59,6 +70,8 @@ func main() {
 	utils.Assert("Error opening connection to Discord", err)
 	defer discord.Close()
 
+	commandPrefix = "!"
+	
 	<-make(chan struct{})
 }
 
