@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
-	
+
 	"github.com/LANFest/Discord-Bot-Creation/commands/admin"
 	"github.com/LANFest/Discord-Bot-Creation/commands/chapter"
 	"github.com/LANFest/Discord-Bot-Creation/data"
@@ -68,6 +68,22 @@ func main() {
 
 	err = discord.Open()
 	utils.Assert("Error opening connection to Discord", err)
+
+	for i := 0; i < len(discord.State.Guilds); i++ {
+		currentguild := discord.State.Guilds[i]
+		println(currentguild.ID)
+		channellist, err := discord.GuildChannels(currentguild.ID)
+		errCheck("error retrieving channellist", err)
+		println(channellist)
+		for a := 0; a < len(channellist); a++ {
+			if channellist[a].Name == "general" {
+				message, err := discord.ChannelMessageSend(channellist[a].ID, "Hello Fish!")
+				errCheck("error sending message", err)
+				println(message.ID)
+			}
+		}
+	}
+
 	defer discord.Close()
 
 	commandPrefix = "!"
@@ -80,9 +96,15 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 		//Do nothing because a bot is talking
 		return
 	}
-
+	
 	if !strings.HasPrefix(message.Content, data.Constants().CommandPrefix) {
 		// It's not a command, nothing to do here.
+		return
+	}
+
+func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
+	user := message.Author
+	if user.ID == botID || user.Bot {
 		return
 	}
 
