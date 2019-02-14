@@ -30,6 +30,22 @@ func main() { // calling the function command, ????
 
 	err = discord.Open()
 	errCheck("Error opening connection to Discord", err)
+	//bullshit lane
+	for i := 0; i < len(discord.State.Guilds); i++ {
+		currentguild := discord.State.Guilds[i]
+		println(currentguild.ID)
+		channellist, err := discord.GuildChannels(currentguild.ID)
+		errCheck("error retrieving channellist", err)
+		println(channellist)
+		for a := 0; a < len(channellist); a++ {
+			if channellist[a].Name == "general" {
+				message, err := discord.ChannelMessageSend(channellist[a].ID, "Hello Fish!")
+				errCheck("error sending message", err)
+				println(message.ID)
+			}
+		}
+	}
+
 	defer discord.Close()
 
 	commandPrefix = "!" // this is setting the command prefix which lets the bot know that a command will follow? Starts the command?
@@ -48,7 +64,7 @@ func errCheck(msg string, err error) {
 func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	user := message.Author
 	if user.ID == botID || user.Bot {
-		//Do nothing because the bot is talking
+		//Do nothing because the bot is talking?
 		return
 	}
 
