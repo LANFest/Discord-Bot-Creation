@@ -15,6 +15,7 @@ import (
 var (
 	commandPrefix string
 	botID         string
+	botname       string
 )
 
 func main() {
@@ -32,7 +33,8 @@ func main() {
 	user, err := discord.User("@me")                //grabbing account information
 	errCheck("error retrieving account", err)       //check if error occurred
 
-	botID = user.ID                    //botID is a variable set to the bots information
+	botID = user.ID //botID is a variable set to the bots information
+	botname = "TestBot"
 	discord.AddHandler(commandHandler) // a listener that when it picks up a message create it runs the function
 
 	discord.AddHandler(func(discord *discordgo.Session, ready *discordgo.Ready) {
@@ -75,13 +77,32 @@ func main() {
 		channellist, err := discord.GuildChannels(currentguild.ID)
 		errCheck("error retrieving channellist", err)
 		println(channellist)
+		var (
+			messagechannel string
+		)
 		for a := 0; a < len(channellist); a++ {
+			if channellist[a].Type == discordgo.ChannelTypeGuildText {
+				messagechannel = channellist[a].ID
+			}
 			if channellist[a].Name == "general" {
 				message, err := discord.ChannelMessageSend(channellist[a].ID, "Hello Fish!")
 				errCheck("error sending message", err)
 				println(message.ID)
 			}
 		}
+		for r := 0; r < len(currentguild.Roles); r++ {
+			currentrole := currentguild.Roles[r]
+			println(currentrole.Name)
+			println(currentrole.ID)
+			if currentrole.Name == "admin" {
+				println(messagechannel)
+			}
+		}
+		ownerchannel, err := discord.UserChannelCreate(currentguild.OwnerID)
+		errCheck("error creating channel", err)
+		message, err := discord.ChannelMessageSend(ownerchannel.ID, "Welcome to the LANFest Discord bot! You are registered as the owner of "+currentguild.Name+", so you will need to answer a few questions to complete setup. If you’d rather not, please type the discord ID of another admin-level access user (e.g. "+botname+botID+") to complete setup for you. Type y to continue.")
+		errCheck("error sending message", err)
+		println(message.ID)
 	}
 
 	defer discord.Close()
