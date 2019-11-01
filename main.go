@@ -20,7 +20,7 @@ var (
 var configFilePath = "configData.json"
 
 func main() {
-	discord, err := discordgo.New("Bot NDg5NzIwNjU5NzkxMDUyODAx.XbyBjw.yjhse35A1EBPuwAmb-K2VxuPRrg")
+	discord, err := discordgo.New("Bot NTA1MDg3MDMzOTA4Mzk2MDM3.DvRjqw.2qPeYEkKHtPVBHIOP7Oy6Pkcklk")
 	errCheck("error creating discord session", err)
 	user, err := discord.User("@me")
 	errCheck("error retrieving account", err)
