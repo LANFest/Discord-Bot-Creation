@@ -17,6 +17,7 @@ var (
 	guilds          []config.GuildData
 	token           string
 	commandHandlers []interface{}
+	owner           *discordgo.User
 )
 
 func main() {
@@ -27,24 +28,38 @@ func main() {
 
 	discord, err := discordgo.New("Bot " + token)
 	utils.Assert("error creating discord session", err)
-	user, err := discord.User("@me")
-	utils.Assert("error retrieving account", err)
 
-	bot = user
 	discord.AddHandler(coreMessageHandler)
 	discord.AddHandler(func(discord *discordgo.Session, ready *discordgo.Ready) {
 		err = discord.UpdateStatus(0, "Insaniquarium!")
 		if err != nil {
 			fmt.Println("Error attempting to set my status")
 		}
+
+		// Who are we?
+		bot = discord.State.Ready.User
+		fmt.Print("Bot Connected!\n")
+
+		// Who's the owner?
+		application, appError := discord.Application("@me")
+		utils.Assert("Could not find application!", appError)
+		owner = application.Owner
+		fmt.Printf("Application: %s - Owner: %s\n", application.Name, application.Owner.String())
+		fmt.Printf("User: %s -  ID: %s\n-----------------------------------------\n", bot.String(), bot.ID)
+
+		// Where are we?
 		servers := discord.State.Guilds
-		fmt.Printf("Test Bot has started on %d servers", len(servers))
+		fmt.Printf("Servers (%d):\n", len(servers))
+		for _, server := range servers {
+			fmt.Printf("%s - %s\n", server.Name, server.ID)
+		}
+
 	})
 
 	utils.ReadConfig(&guilds)
 
 	// Set up command handlers
-	commandHandlers = []interface{}{partyOnCommandHandler, writeConfigCommandHandler}
+	commandHandlers = []interface{}{partyOnCommandHandler, writeConfigCommandHandler, shutdownCommandHandler}
 
 	err = discord.Open()
 	utils.Assert("Error opening connection to Discord", err)
@@ -59,7 +74,7 @@ func main() {
 func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
 	user := message.Author
 	if user.ID == bot.ID || user.Bot {
-		//Do nothing because the bot is talking
+		//Do nothing because a bot is talking
 		return
 	}
 
@@ -106,10 +121,30 @@ func partyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 }
 
 func writeConfigCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
-	// We have no way to know if the owner of the bot is the one calling writeConfig.
-	// Should look into this in the future.
-	if strings.HasPrefix(message.Content, commandPrefix+"writeConfig") {
+	if isOwner(message.Author) &&
+		isDM(session, message.Message) &&
+		strings.HasPrefix(message.Content, commandPrefix+"writeConfig") {
+
 		utils.WriteConfig(&guilds)
 		session.ChannelMessageSend(message.ChannelID, "Config Data Recorded")
 	}
+}
+
+func shutdownCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
+	if isOwner(message.Author) &&
+		isDM(session, message.Message) &&
+		strings.HasPrefix(message.Content, commandPrefix+"shutdown") {
+
+		session.ChannelMessageSend(message.ChannelID, "Buh-bye!")
+		utils.Shutdown(session)
+	}
+}
+
+func isOwner(user *discordgo.User) bool {
+	return user.ID == owner.ID
+}
+
+func isDM(session *discordgo.Session, message *discordgo.Message) bool {
+	channel, _ := session.Channel(message.ChannelID)
+	return channel.Type == discordgo.ChannelTypeDM
 }

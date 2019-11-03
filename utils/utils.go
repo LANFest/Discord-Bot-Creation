@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/bwmarrin/discordgo"
@@ -61,4 +62,11 @@ func Assert(msg string, err error) {
 		fmt.Printf("%s: %+v", msg, err)
 		panic(err)
 	}
+}
+
+func Shutdown(session *discordgo.Session) {
+	fmt.Print("Shutting Down!")
+	session.Logout()
+	session.Close()
+	os.Exit(0)
 }
