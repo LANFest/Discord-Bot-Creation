@@ -12,4 +12,6 @@
 *.out
 
 __debug_bin
+
 configData.json
+token.txt
