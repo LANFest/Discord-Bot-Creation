@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -29,17 +28,17 @@ func FindGuildByID(targetGuildID string) *config.GuildData {
 // ReadConfig : Reads in the config data from the file and populates the supplied pointer
 func ReadConfig() {
 	file, readError := ioutil.ReadFile(data.Constants().ConfigFilePath)
-	Assert("Error reading Config Data", readError)
+	Assert("Error reading Config Data", readError, false)
 
 	parseError := json.Unmarshal(file, &data.Globals().GuildData)
-	Assert("Error parsing Config Data", parseError)
+	Assert("Error parsing Config Data", parseError, false)
 }
 
 // WriteConfig : Writes the config data to disk
 func WriteConfig() {
 	file, _ := json.MarshalIndent(data.Globals().GuildData, "", " ")
 	error := ioutil.WriteFile(data.Constants().ConfigFilePath, file, 0644)
-	Assert("Error writing config data!", error)
+	Assert("Error writing config data!", error, false)
 }
 
 // FindRole : finds the requested Role within the list of Roles from the specified Guild
@@ -54,15 +53,17 @@ func FindRole(guildID string, roleID string) *discordgo.Role {
 }
 
 // Assert : if error exists, panic.
-func Assert(msg string, err error) {
+func Assert(msg string, err error, shouldPanic bool) {
 	if err != nil {
-		fmt.Printf("%s: %+v", msg, err)
-		panic(err)
+		LPrintf("%s: %+v", msg, err)
+		if shouldPanic {
+			panic(err)
+		}
 	}
 }
 
 func Shutdown(session *discordgo.Session) {
-	fmt.Print("Shutting Down!")
+	LPrint("Shutting Down!")
 	session.Logout()
 	session.Close()
 	os.Exit(0)
@@ -75,4 +76,16 @@ func IsOwner(user *discordgo.User) bool {
 func IsDM(message *discordgo.Message) bool {
 	channel, _ := data.Globals().Session.Channel(message.ChannelID)
 	return channel.Type == discordgo.ChannelTypeDM
+}
+
+func LPrint(message string) {
+	fmt.Print(message + "\n")
+}
+
+func LPrintf(format string, a ...interface{}) {
+	fmt.Printf(format+"\n", a...)
+}
+
+func Substring(string source, number start, number end) string {
+	return string([]rune(source)[])
 }

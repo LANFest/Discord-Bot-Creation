@@ -1,3 +1,7 @@
+/*
+ * This is for Chapter admins (usually server owners of their chapter Discord)
+ */
+
 package chapter
 
 import (
@@ -37,7 +41,7 @@ func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 			utils.Assert("Unable to add role!", err)
 			responseMessage += "<@" + mention.ID + ">! "
 		}
-		responseMessage += "https://giphy.com/gifs/chuber-wayne-waynes-world-d3mlYwpf96kMuFjO"
+		responseMessage += data.Constants().PartyOnLink
 
 		session.ChannelMessageSend(message.ChannelID, responseMessage)
 	}
