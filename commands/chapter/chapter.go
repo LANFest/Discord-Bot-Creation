@@ -38,7 +38,7 @@ func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 		var responseMessage = "Party On "
 		for _, mention := range message.Mentions {
 			err := session.GuildMemberRoleAdd(message.GuildID, mention.ID, guild.AttendeeRoleID)
-			utils.Assert("Unable to add role!", err)
+			utils.Assert("Unable to add role!", err, false)
 			responseMessage += "<@" + mention.ID + ">! "
 		}
 		responseMessage += data.Constants().PartyOnLink

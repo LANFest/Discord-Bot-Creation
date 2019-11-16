@@ -57,6 +57,7 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 
 func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 	globalData := data.Globals()
+	globalData.Session = discord
 	err := discord.UpdateStatus(0, data.Constants().StatusMessage)
 	if err != nil {
 		utils.LPrint("Error attempting to set my status")
@@ -79,4 +80,6 @@ func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 	for _, server := range servers {
 		utils.LPrintf("%s - %s", server.Name, server.ID)
 	}
+
+	utils.WriteConfig()
 }

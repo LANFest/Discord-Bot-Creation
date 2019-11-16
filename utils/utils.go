@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -84,8 +85,4 @@ func LPrint(message string) {
 
 func LPrintf(format string, a ...interface{}) {
 	fmt.Printf(format+"\n", a...)
-}
-
-func Substring(string source, number start, number end) string {
-	return string([]rune(source)[])
 }
