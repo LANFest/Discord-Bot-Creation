@@ -15,6 +15,7 @@ type GuildData struct {
 	LANMode            bool
 	NextLANData        LANPartyData   `json:"nextLANData"`
 	PastLANData        []LANPartyData `json:"pastLANData"`
+	LFGData            []LFGData      `json:"lfgData"`
 }
 
 // LANPartyData : Information on the next upcoming LANParty
@@ -26,4 +27,10 @@ type LANPartyData struct {
 	TicketURL        string    `json:"ticketURL"`
 	TicketDate       time.Time `json:"ticketDate"`
 	LastAnnounceDate time.Time `json:"lastAnnounceDate"`
+}
+
+type LFGData struct {
+	ChannelID string `json:"channelID"`
+	Capacity  int    `json:"capacity"`
+	OwnerID   string `json:"ownerID"`
 }
