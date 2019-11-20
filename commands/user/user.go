@@ -82,6 +82,6 @@ func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCre
 
 	session.MessageReactionAdd(message.ChannelID, message.ID, "%F0%9F%91%8D") // This is url-encoded emoji for thumbs-up
 	session.ChannelMessageSend(message.ChannelID, fmt.Sprintf("%s has been added to the LFG queue for %s for the next 4 hours.", message.Message.Author.Username, gameName))
-	session.ChannelMessageSend(newChannel.ID, fmt.Sprintf("Hey @everyone! <@%s> is looking for %s players for %s - click the :thumbsup: to join in!", message.Author.ID, capacityRaw, gameName)
+	session.ChannelMessageSend(newChannel.ID, fmt.Sprintf("Hey @everyone! <@%s> is looking for %s players for %s - click the :thumbsup: to join in!", message.Author.ID, capacityRaw, gameName))
 
 }
