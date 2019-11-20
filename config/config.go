@@ -12,6 +12,7 @@ type GuildData struct {
 	AnnounceChannelID  string `json:"announceChannelID"`
 	AttendeeRoleID     string `json:"attendeeRoleID"`
 	PastAttendeeRoleID string `json:"pastAttendeeRoleID"`
+	LFGCategoryID      string `json:"lfgCategoryID"`
 	LANMode            bool
 	NextLANData        LANPartyData   `json:"nextLANData"`
 	PastLANData        []LANPartyData `json:"pastLANData"`
@@ -30,7 +31,8 @@ type LANPartyData struct {
 }
 
 type LFGData struct {
-	ChannelID string `json:"channelID"`
-	Capacity  int    `json:"capacity"`
-	OwnerID   string `json:"ownerID"`
+	ChannelID  string    `json:"channelID"`
+	Capacity   int       `json:"capacity"`
+	OwnerID    string    `json:"ownerID"`
+	CreateDate time.Time `json:"createDate"`
 }

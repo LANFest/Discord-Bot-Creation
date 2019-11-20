@@ -6,6 +6,8 @@ import (
 
 	"github.com/LANFest/Discord-Bot-Creation/commands/admin"
 	"github.com/LANFest/Discord-Bot-Creation/commands/chapter"
+	"github.com/LANFest/Discord-Bot-Creation/commands/user"
+	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/data"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/bwmarrin/discordgo"
@@ -24,6 +26,7 @@ func main() {
 	globalData.Token = string(file)
 
 	discord, err := discordgo.New("Bot " + globalData.Token)
+	//discord.Debug = true
 	utils.Assert("error creating discord session", err, true)
 
 	gameLibFile, err := ioutil.ReadFile("games.yml")
@@ -41,7 +44,7 @@ func main() {
 	utils.ReadConfig()
 
 	// Set up command handlers
-	globalData.CommandHandlers = []interface{}{chapter.PartyOnCommandHandler, admin.WriteConfigCommandHandler, admin.ShutdownCommandHandler}
+	globalData.CommandHandlers = []interface{}{chapter.PartyOnCommandHandler, admin.WriteConfigCommandHandler, admin.ShutdownCommandHandler, user.LFGCommandHandler}
 
 	err = discord.Open()
 	utils.Assert("Error opening connection to Discord", err, true)
@@ -65,7 +68,9 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 		handler.(func(*discordgo.Session, *discordgo.MessageCreate))(session, message)
 	}
 
-	utils.LPrintf("Message: %+v || From: %s\n", message.Message, message.Author)
+	if data.Constants().DebugOutput {
+		utils.LPrintf("Message: %+v || From: %s\n", message.Message, message.Author)
+	}
 }
 
 func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
@@ -73,7 +78,7 @@ func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 	globalData.Session = discord
 	err := discord.UpdateStatus(0, data.Constants().StatusMessage)
 	if err != nil {
-		utils.LPrint("Error attempting to set my status")
+		utils.LPrintf("Error attempting to set my status: %s", err)
 	}
 
 	// Who are we?
@@ -85,15 +90,71 @@ func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 	utils.Assert("Could not find application!", appError, true)
 	globalData.Owner = application.Owner
 	utils.LPrintf("Application: %s - Owner: %s", application.Name, application.Owner.String())
-	utils.LPrintf("User: %s -  ID: %s\n-----------------------------------------", globalData.Bot.String(), globalData.Bot.ID)
+	utils.LPrintf("User: %s -  ID: %s\n", globalData.Bot.String(), globalData.Bot.ID)
+	utils.LPrint("-----------------------------------------")
 
 	// Where are we?
 	servers := discord.State.Guilds
 	utils.LPrintf("Servers (%d):", len(servers))
 	for _, server := range servers {
 		utils.LPrintf("%s - %s", server.Name, server.ID)
-		utils.FindGuildByID(server.ID) // This function has a side-effect of putting the server into the global collection
+		validateGuildCoreData(server, utils.FindGuildByID(server.ID)) // utils.FindGuildByID has a side-effect of putting the server into the global collection
 	}
 
 	utils.WriteConfig()
+}
+
+func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildData) {
+	var foundLFG, foundAnnounce, foundAttendee, foundPastAttendee bool // Are the values in the model good?
+
+	// Run through the channels
+	for _, channel := range guild.Channels {
+		if channel.ID == guildDataModel.LFGCategoryID { // Found our LFGCategory! Still good.
+			foundLFG = true
+		} else if channel.ID == guildDataModel.AnnounceChannelID { // Found our AnnounceChannel! Still good.
+			foundAnnounce = true
+		} else {
+			switch channel.Type {
+			case discordgo.ChannelTypeGuildCategory:
+				if strings.ToLower(channel.Name) == "lfg" && guildDataModel.LFGCategoryID == "" { // We only want to set if it's blank.
+					guildDataModel.LFGCategoryID = channel.ID
+				}
+				break
+			case discordgo.ChannelTypeGuildText:
+				if strings.ToLower(channel.Name) == "announcements" && guildDataModel.AnnounceChannelID == "" { // We only want to set if it's blank.
+					guildDataModel.AnnounceChannelID = channel.ID
+				}
+			}
+		}
+	}
+
+	if !foundLFG { // LFGCategory wasn't found.  Maybe it was deleted off the server?
+		guildDataModel.LFGCategoryID = ""
+	}
+
+	if !foundAnnounce { // AnnounceChannel wasn't found. Maybe it was deleted off the server?
+		guildDataModel.AnnounceChannelID = ""
+	}
+
+	for _, role := range guild.Roles {
+		if role.ID == guildDataModel.AttendeeRoleID { // Found our AttendeeRole! Still good.
+			foundAttendee = true
+		} else if role.ID == guildDataModel.PastAttendeeRoleID { // Found our PastAttendeeRole! Still good.
+			foundPastAttendee = true
+		} else {
+			if strings.ToLower(role.Name) == "attendee" && guildDataModel.AttendeeRoleID == "" { // We only want to set if it's blank.
+				guildDataModel.AttendeeRoleID = role.ID
+			} else if strings.ToLower(role.Name) == "pastattendee" && guildDataModel.PastAttendeeRoleID == "" { // We only want to set if it's blank.
+				guildDataModel.PastAttendeeRoleID = role.ID
+			}
+		}
+	}
+
+	if !foundAttendee {
+		guildDataModel.AttendeeRoleID = ""
+	}
+
+	if !foundPastAttendee {
+		guildDataModel.PastAttendeeRoleID = ""
+	}
 }

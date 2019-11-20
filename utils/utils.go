@@ -8,6 +8,7 @@ import (
 
 	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/data"
+	"github.com/ahmetb/go-linq/v3"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -85,4 +86,34 @@ func LPrint(message string) {
 
 func LPrintf(format string, a ...interface{}) {
 	fmt.Printf(format+"\n", a...)
+}
+
+func HasGuildPermission(session *discordgo.Session, guildID string, permissionMask uint) bool {
+	// Get the guild member
+	guildMember, guildErr := session.GuildMember(guildID, data.Globals().Bot.ID)
+	if guildErr != nil {
+		return false
+	}
+
+	guildRoles, guildErr := session.GuildRoles(guildID)
+	if guildErr != nil {
+		return false
+	}
+
+	// linq's Intersect can't handle disparate types, so we build ourselves a collection.
+	var myRoles []*discordgo.Role
+	linq.From(guildRoles).WhereT(func(r *discordgo.Role) bool {
+		return linq.From(guildMember.Roles).AnyWithT(func(r2 string) bool {
+			return r.ID == r2
+		})
+	}).ToSlice(&myRoles)
+
+	// Walk through the list, figure out if we've got the permission.
+	for _, role := range myRoles {
+		if uint(role.Permissions)&permissionMask == permissionMask {
+			return true
+		}
+	}
+
+	return false
 }
