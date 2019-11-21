@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
-	"regexp"
 	"strings"
 
 	"github.com/LANFest/Discord-Bot-Creation/commands/admin"
 	"github.com/LANFest/Discord-Bot-Creation/commands/chapter"
+	"github.com/LANFest/Discord-Bot-Creation/commands/user"
+	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/data"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/bwmarrin/discordgo"
@@ -15,28 +15,19 @@ import (
 )
 
 var (
-	commandPrefix string
-	botID         string
-	botname       string
-	gameLib       map[string]string
+	gameLib map[string]string
 )
 
 func main() {
 	globalData := data.Globals()
 	file, readError := ioutil.ReadFile("token.txt")
-	utils.Assert("Error reading token file", readError)
+	utils.Assert("Error reading token file", readError, true)
 
 	globalData.Token = string(file)
 
 	discord, err := discordgo.New("Bot " + globalData.Token)
-	utils.Assert("error creating discord session", err)
-
-	discord.AddHandler(coreMessageHandler)
-
-	user, err := discord.User("@me")              //grabbing account information
-	utils.Assert("error retrieving account", err) //check if error occurred
-	botID = user.ID                               //botID is a variable set to the bots information
-	botname = "LANFestBot"
+	//discord.Debug = true
+	utils.Assert("error creating discord session", err, true)
 
 	gameLibFile, err := ioutil.ReadFile("games.yml")
 	var yamlErr error
@@ -44,97 +35,20 @@ func main() {
 		yamlErr = yaml.Unmarshal(gameLibFile, &gameLib)
 	}
 	if err != nil || yamlErr != nil {
-		fmt.Printf("%s %s Error loading game library config file. LFG and game matching features will not work.\n", err, yamlErr)
+		utils.LPrintf("%s %s Error loading game library config file. LFG and game matching features will not work.", err, yamlErr)
 	}
 
-	discord.AddHandler(commandHandler) // a listener that when it picks up a message create it runs the function
-
-	discord.AddHandler(func(discord *discordgo.Session, ready *discordgo.Ready) {
-		err = discord.UpdateStatus(0, "with your heart <3")
-		if err != nil {
-			fmt.Println("Error attempting to set my status")
-		}
-
-		// Who are we?
-		globalData.Bot = discord.State.Ready.User
-		fmt.Print("Bot Connected!\n")
-
-		// Who's the owner?
-		application, appError := discord.Application("@me")
-		utils.Assert("Could not find application!", appError)
-		globalData.Owner = application.Owner
-		fmt.Printf("Application: %s - Owner: %s\n", application.Name, application.Owner.String())
-		fmt.Printf("User: %s -  ID: %s\n-----------------------------------------\n", globalData.Bot.String(), globalData.Bot.ID)
-
-		// Where are we?
-		servers := discord.State.Guilds
-		fmt.Printf("LANFest Bot has started on %d servers.\n", len(servers))
-		fmt.Printf("\nServer Details\n")
-		for i := 0; i < len(discord.State.Guilds); i++ {
-			currentguild := discord.State.Guilds[i]
-			fmt.Printf("( ) %s [%s]\n", currentguild.Name, currentguild.ID)
-			channellist, err := discord.GuildChannels(currentguild.ID)
-			utils.Assert("error retrieving channellist", err)
-			for a := 0; a < len(channellist); a++ {
-				fmt.Printf(" + %s [%s] (%d)\n", channellist[a].ID, channellist[a].Name, channellist[a].Type)
-			}
-			for r := 0; r < len(currentguild.Roles); r++ {
-				currentrole := currentguild.Roles[r]
-				fmt.Printf(" %s [%s]\n", currentrole.Name, currentrole.ID)
-			}
-			ownerchannel, err := discord.UserChannelCreate(currentguild.OwnerID)
-			utils.Assert("error creating channel", err)
-			message, err := discord.ChannelMessageSend(ownerchannel.ID, "Welcome to the LANFest Discord bot! You are registered as the owner of "+currentguild.Name+", so you will need to answer a few questions to complete setup. If you’d rather not, please type the discord ID of another admin-level access user (e.g. "+botname+botID+") to complete setup for you. Type y to continue.")
-			utils.Assert("error sending message", err)
-			println(message.ID)
-		}
-	})
+	discord.AddHandler(coreMessageHandler)
+	discord.AddHandler(coreReadyHandler)
 
 	utils.ReadConfig()
 
 	// Set up command handlers
-	globalData.CommandHandlers = []interface{}{chapter.PartyOnCommandHandler, admin.WriteConfigCommandHandler, admin.ShutdownCommandHandler}
+	globalData.CommandHandlers = []interface{}{chapter.PartyOnCommandHandler, admin.WriteConfigCommandHandler, admin.ShutdownCommandHandler, user.LFGCommandHandler}
 
 	err = discord.Open()
-	utils.Assert("Error opening connection to Discord", err)
-
-	for i := 0; i < len(discord.State.Guilds); i++ {
-		currentguild := discord.State.Guilds[i]
-		println(currentguild.ID)
-		channellist, err := discord.GuildChannels(currentguild.ID)
-		utils.Assert("error retrieving channellist", err)
-		println(channellist)
-		var (
-			messagechannel string
-		)
-		for a := 0; a < len(channellist); a++ {
-			if channellist[a].Type == discordgo.ChannelTypeGuildText {
-				messagechannel = channellist[a].ID
-			}
-			if channellist[a].Name == "general" {
-				message, err := discord.ChannelMessageSend(channellist[a].ID, "Hello Fish!")
-				utils.Assert("error sending message", err)
-				println(message.ID)
-			}
-		}
-		for r := 0; r < len(currentguild.Roles); r++ {
-			currentrole := currentguild.Roles[r]
-			println(currentrole.Name)
-			println(currentrole.ID)
-			if currentrole.Name == "admin" {
-				println(messagechannel)
-			}
-		}
-		ownerchannel, err := discord.UserChannelCreate(currentguild.OwnerID)
-		utils.Assert("error creating channel", err)
-		message, err := discord.ChannelMessageSend(ownerchannel.ID, "Welcome to the LANFest Discord bot! You are registered as the owner of "+currentguild.Name+", so you will need to answer a few questions to complete setup. If you’d rather not, please type the discord ID of another admin-level access user (e.g. "+botname+botID+") to complete setup for you. Type y to continue.")
-		utils.Assert("error sending message", err)
-		println(message.ID)
-	}
-
+	utils.Assert("Error opening connection to Discord", err, true)
 	defer discord.Close()
-
-	commandPrefix = "!"
 
 	<-make(chan struct{})
 }
@@ -149,27 +63,98 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 		// It's not a command, nothing to do here.
 		return
 	}
-}
-
-func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
-	user := message.Author
-	if user.ID == botID || user.Bot {
-		return
-	}
 
 	for _, handler := range data.Globals().CommandHandlers {
-		handler.(func(*discordgo.Session, *discordgo.MessageCreate))(discord, message)
+		handler.(func(*discordgo.Session, *discordgo.MessageCreate))(session, message)
 	}
 
-	fmt.Printf("Message: %+v || From: %s\n", message.Message, message.Author)
+	if data.Constants().DebugOutput {
+		utils.LPrintf("Message: %+v || From: %s\n", message.Message, message.Author)
+	}
+}
 
-	if strings.HasPrefix(message.Message.Content, "!lfg ") {
-		fmt.Printf("LFG Command string found.\n")
-		specialCharsRegex, err := regexp.Compile("[^a-zA-Z0-9]+")
-		if err != nil {
-			discord.MessageReactionAdd(message.Message.ChannelID, message.Message.ID, "632789111958274068")
+func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
+	globalData := data.Globals()
+	globalData.Session = discord
+	err := discord.UpdateStatus(0, data.Constants().StatusMessage)
+	if err != nil {
+		utils.LPrintf("Error attempting to set my status: %s", err)
+	}
+
+	// Who are we?
+	globalData.Bot = discord.State.Ready.User
+	utils.LPrint("Bot Connected!")
+
+	// Who's the owner?
+	application, appError := discord.Application("@me")
+	utils.Assert("Could not find application!", appError, true)
+	globalData.Owner = application.Owner
+	utils.LPrintf("Application: %s - Owner: %s", application.Name, application.Owner.String())
+	utils.LPrintf("User: %s -  ID: %s\n", globalData.Bot.String(), globalData.Bot.ID)
+	utils.LPrint("-----------------------------------------")
+
+	// Where are we?
+	servers := discord.State.Guilds
+	utils.LPrintf("Servers (%d):", len(servers))
+	for _, server := range servers {
+		utils.LPrintf("%s - %s", server.Name, server.ID)
+		validateGuildCoreData(server, utils.FindGuildByID(server.ID)) // utils.FindGuildByID has a side-effect of putting the server into the global collection
+	}
+
+	utils.WriteConfig()
+}
+
+func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildData) {
+	var foundLFG, foundAnnounce, foundAttendee, foundPastAttendee bool // Are the values in the model good?
+
+	// Run through the channels
+	for _, channel := range guild.Channels {
+		if channel.ID == guildDataModel.LFGCategoryID { // Found our LFGCategory! Still good.
+			foundLFG = true
+		} else if channel.ID == guildDataModel.AnnounceChannelID { // Found our AnnounceChannel! Still good.
+			foundAnnounce = true
+		} else {
+			switch channel.Type {
+			case discordgo.ChannelTypeGuildCategory:
+				if strings.ToLower(channel.Name) == "lfg" && guildDataModel.LFGCategoryID == "" { // We only want to set if it's blank.
+					guildDataModel.LFGCategoryID = channel.ID
+				}
+				break
+			case discordgo.ChannelTypeGuildText:
+				if strings.ToLower(channel.Name) == "announcements" && guildDataModel.AnnounceChannelID == "" { // We only want to set if it's blank.
+					guildDataModel.AnnounceChannelID = channel.ID
+				}
+			}
 		}
-		gameSuggestion := strings.ToLower(specialCharsRegex.ReplaceAllString(strings.TrimPrefix(message.Message.Content, "!lfg "), ""))
-		discord.ChannelMessageSend(message.Message.ChannelID, fmt.Sprintf("%s has been added to the LFG queue for %s for the next 4 hours.", message.Message.Author.Username, gameSuggestion))
+	}
+
+	if !foundLFG { // LFGCategory wasn't found.  Maybe it was deleted off the server?
+		guildDataModel.LFGCategoryID = ""
+	}
+
+	if !foundAnnounce { // AnnounceChannel wasn't found. Maybe it was deleted off the server?
+		guildDataModel.AnnounceChannelID = ""
+	}
+
+	for _, role := range guild.Roles {
+		if role.ID == guildDataModel.AttendeeRoleID { // Found our AttendeeRole! Still good.
+			foundAttendee = true
+		} else if role.ID == guildDataModel.PastAttendeeRoleID { // Found our PastAttendeeRole! Still good.
+			foundPastAttendee = true
+		} else {
+			if strings.ToLower(role.Name) == "attendee" && guildDataModel.AttendeeRoleID == "" { // We only want to set if it's blank.
+				guildDataModel.AttendeeRoleID = role.ID
+			} else if strings.ToLower(role.Name) == "pastattendee" && guildDataModel.PastAttendeeRoleID == "" { // We only want to set if it's blank.
+				guildDataModel.PastAttendeeRoleID = role.ID
+			}
+		}
+	}
+
+	if !foundAttendee {
+		guildDataModel.AttendeeRoleID = ""
+	}
+
+	if !foundPastAttendee {
+		guildDataModel.PastAttendeeRoleID = ""
 	}
 }

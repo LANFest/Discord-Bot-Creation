@@ -1,3 +1,7 @@
+/*
+ * This is for the Bot Owners themselves.
+ */
+
 package admin
 
 import (

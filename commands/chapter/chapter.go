@@ -1,3 +1,7 @@
+/*
+ * This is for Chapter admins (usually server owners of their chapter Discord)
+ */
+
 package chapter
 
 import (
@@ -34,10 +38,10 @@ func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 		var responseMessage = "Party On "
 		for _, mention := range message.Mentions {
 			err := session.GuildMemberRoleAdd(message.GuildID, mention.ID, guild.AttendeeRoleID)
-			utils.Assert("Unable to add role!", err)
+			utils.Assert("Unable to add role!", err, false)
 			responseMessage += "<@" + mention.ID + ">! "
 		}
-		responseMessage += "https://giphy.com/gifs/chuber-wayne-waynes-world-d3mlYwpf96kMuFjO"
+		responseMessage += data.Constants().PartyOnLink
 
 		session.ChannelMessageSend(message.ChannelID, responseMessage)
 	}
