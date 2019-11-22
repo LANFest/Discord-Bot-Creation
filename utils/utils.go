@@ -6,26 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/data"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/bwmarrin/discordgo"
 )
-
-// FindGuildByID : Finds a guild based on the guildID
-func FindGuildByID(targetGuildID string) *config.GuildData {
-	for i := range data.Globals().GuildData {
-		if data.Globals().GuildData[i].GuildID == targetGuildID {
-			return &data.Globals().GuildData[i]
-		}
-	}
-
-	guild := new(config.GuildData)
-	guild.GuildID = targetGuildID
-	data.Globals().GuildData = append(data.Globals().GuildData, *guild)
-
-	return guild
-}
 
 // ReadConfig : Reads in the config data from the file and populates the supplied pointer
 func ReadConfig() {

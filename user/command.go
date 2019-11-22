@@ -18,20 +18,22 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
-	if !strings.HasPrefix(message.Message.Content, data.Constants().CommandPrefix+"lfg ") {
-		return
+func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
+	handled := false
+	if !strings.HasPrefix(message.Message.Content, fmt.Sprintf("%slfg ", data.Constants().CommandPrefix)) {
+		return handled
 	}
 
 	// Should we only let Attendees do it?
 
 	// Should we only allow it during an event?
 
+	handled = true // Yep, this is ours.
 	commandRegex := regexp.MustCompile("^" + data.Constants().CommandPrefix + "lfg \"(.+)\" (\\d+)$")
 	commandArgs := commandRegex.FindStringSubmatch(message.Content)
 	if len(commandArgs) < 3 {
 		session.ChannelMessageSend(message.ChannelID, "Usage: !lfg \"<Game Name>\" <NumberOfPlayers>")
-		return
+		return handled
 	}
 
 	gameNameRaw := commandArgs[1]
@@ -42,46 +44,50 @@ func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCre
 	capacity, _ := strconv.Atoi(capacityRaw)
 	if capacity < 2 {
 		session.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Incorrect number of players! - %s", capacityRaw))
-		return
+		return handled
 	}
 
 	guildModel := utils.FindGuildByID(message.GuildID)
 	guild, _ := session.Guild(guildModel.GuildID)
 
 	rawCategory := linq.From(guild.Channels).FirstWithT(func(c *discordgo.Channel) bool { return c.ID == guildModel.LFGCategoryID })
+	var category *discordgo.Channel
 	if rawCategory == nil {
 		// No category! Let's make one.
-		if !utils.HasGuildPermission(session, guild.ID, uint(data.PERMISSION_MANAGE_CHANNELS)) {
+		if !utils.HasGuildPermission(session, guild.ID, discordgo.PermissionManageChannels) {
 			session.ChannelMessageSend(message.ChannelID, "I can't create a channel! Please contact a server administrator.")
 			utils.LPrint("Unable to create LFG Category: No permissions")
-			return
+			return handled
 		}
 
 		newCategory, newCatErr := session.GuildChannelCreate(guild.ID, "LFG", discordgo.ChannelTypeGuildCategory)
 		if newCatErr != nil {
 			session.ChannelMessageSend(message.ChannelID, "Unable to create channel. Please contact a server administrator.")
 			utils.LPrintf("Unable to create LFG Category: %s", newCatErr)
-			return
+			return handled
 		}
 
 		guildModel.LFGCategoryID = newCategory.ID
+		category = newCategory
 	}
 
-	createData := discordgo.GuildChannelCreateData{Name: "lfg_" + gameName, Type: discordgo.ChannelTypeGuildText, ParentID: guildModel.LFGCategoryID}
-
-	newChannel, newChannelErr := session.GuildChannelCreateComplex(guild.ID, createData)
+	newChannel, newChannelErr := CreateLFGChannel(session, category, gameName)
 	if newChannelErr != nil {
-		session.ChannelMessageSend(message.ChannelID, "I can't create the channel! Please contact a server administrator.")
-		utils.LPrintf("Unable to create LFG Channel: %s", newChannelErr)
-		return
+		errMsg := fmt.Sprintf("Unable to create LFG Channel: %s", newChannelErr)
+		session.ChannelMessageSend(message.ChannelID, errMsg)
+		utils.LPrint(errMsg)
+		return handled
 	}
 
 	lfgData := config.LFGData{ChannelID: newChannel.ID, Capacity: capacity, OwnerID: message.Author.ID, CreateDate: time.Now()}
 	guildModel.LFGData = append(guildModel.LFGData, lfgData)
 	utils.WriteConfig()
 
-	session.MessageReactionAdd(message.ChannelID, message.ID, "%F0%9F%91%8D") // This is url-encoded emoji for thumbs-up
-	session.ChannelMessageSend(message.ChannelID, fmt.Sprintf("%s has been added to the LFG queue for %s for the next 4 hours.", message.Message.Author.Username, gameName))
-	session.ChannelMessageSend(newChannel.ID, fmt.Sprintf("Hey @everyone! <@%s> is looking for %s players for %s - click the :thumbsup: to join in!", message.Author.ID, capacityRaw, gameName))
+	session.MessageReactionAdd(message.ChannelID, message.ID, ThumbsUpEmoji)
+	session.ChannelMessageSend(message.ChannelID, fmt.Sprintf("<@%s> has been added to the LFG queue in %s for the next 4 hours.", message.Message.Author.ID, newChannel.Name))
+	pollMessage, _ := session.ChannelMessageSend(newChannel.ID, fmt.Sprintf("Hey <@%s> is looking for %s players for %s - click the :thumbsup: to join in!", message.Author.ID, capacityRaw, gameNameRaw))
+	session.ChannelMessagePin(newChannel.ID, pollMessage.ID)
+	session.MessageReactionAdd(newChannel.ID, pollMessage.ID, ThumbsUpEmoji)
 
+	return handled
 }

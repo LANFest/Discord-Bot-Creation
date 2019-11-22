@@ -4,11 +4,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/LANFest/Discord-Bot-Creation/commands/admin"
-	"github.com/LANFest/Discord-Bot-Creation/commands/chapter"
-	"github.com/LANFest/Discord-Bot-Creation/commands/user"
+	"github.com/LANFest/Discord-Bot-Creation/admin"
+	"github.com/LANFest/Discord-Bot-Creation/chapter"
 	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/data"
+	"github.com/LANFest/Discord-Bot-Creation/user"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/bwmarrin/discordgo"
 	"github.com/ghodss/yaml"
@@ -38,13 +38,16 @@ func main() {
 		utils.LPrintf("%s %s Error loading game library config file. LFG and game matching features will not work.", err, yamlErr)
 	}
 
-	discord.AddHandler(coreMessageHandler)
 	discord.AddHandler(coreReadyHandler)
+	discord.AddHandler(coreMessageHandler)
+	discord.AddHandler(coreReactionAddHandler)
+	discord.AddHandler(coreReactionRemoveHandler)
 
 	utils.ReadConfig()
 
 	// Set up command handlers
 	globalData.CommandHandlers = []interface{}{chapter.PartyOnCommandHandler, admin.WriteConfigCommandHandler, admin.ShutdownCommandHandler, user.LFGCommandHandler}
+	globalData.ReactionAddHandlers = []interface{}{user.LFGChannelMessageReactionAdd}
 
 	err = discord.Open()
 	utils.Assert("Error opening connection to Discord", err, true)
@@ -65,11 +68,15 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 	}
 
 	for _, handler := range data.Globals().CommandHandlers {
-		handler.(func(*discordgo.Session, *discordgo.MessageCreate))(session, message)
+		// Handlers will return true if they 'handled' the message.
+		// This will allow us to circuit-break when we hit the right handler.
+		if handler.(func(*discordgo.Session, *discordgo.MessageCreate) bool)(session, message) {
+			break
+		}
 	}
 
 	if data.Constants().DebugOutput {
-		utils.LPrintf("Message: %+v || From: %s\n", message.Message, message.Author)
+		utils.LPrintf("Message: %+v || From: %s", message.Message, message.Author)
 	}
 }
 
@@ -102,6 +109,44 @@ func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 	}
 
 	utils.WriteConfig()
+}
+
+func coreReactionAddHandler(session *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
+	user, _ := session.User(reaction.UserID)
+	if user.Bot {
+		return // Ignore when bots add reactions to things.
+	}
+
+	for _, handler := range data.Globals().ReactionAddHandlers {
+		// Handlers will return true if they 'handled' the message.
+		// This will allow us to circuit-break when we hit the right handler.
+		if handler.(func(*discordgo.Session, *discordgo.MessageReactionAdd) bool)(session, reaction) {
+			break
+		}
+	}
+
+	if data.Constants().DebugOutput {
+		utils.LPrintf("Reaction Add: %+v || From: %s", reaction, user)
+	}
+}
+
+func coreReactionRemoveHandler(session *discordgo.Session, reaction *discordgo.MessageReactionRemove) {
+	user, _ := session.User(reaction.UserID)
+	if user.Bot {
+		return // Ignore when bots add reactions to things.
+	}
+
+	for _, handler := range data.Globals().ReactionDeleteHandlers {
+		// Handlers will return true if they 'handled' the message.
+		// This will allow us to circuit-break when we hit the right handler.
+		if handler.(func(*discordgo.Session, *discordgo.MessageReactionRemove) bool)(session, reaction) {
+			break
+		}
+	}
+
+	if data.Constants().DebugOutput {
+		utils.LPrintf("Reaction Delete: %+v || From: %s", reaction, user)
+	}
 }
 
 func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildData) {
