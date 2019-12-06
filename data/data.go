@@ -8,12 +8,16 @@ import (
 type ConstantsModel struct {
 	CommandPrefix  string
 	ConfigFilePath string
+	PartyOnLink    string
+	StatusMessage  string
 }
 
 func Constants() ConstantsModel {
 	return ConstantsModel{
 		CommandPrefix:  "!",
 		ConfigFilePath: "configData.json",
+		PartyOnLink:    "https://giphy.com/gifs/chuber-wayne-waynes-world-d3mlYwpf96kMuFjO",
+		StatusMessage:  "with your heart <3",
 	}
 }
 
