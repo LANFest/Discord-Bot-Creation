@@ -6,15 +6,17 @@ import (
 
 // GuildData : All Data for a particular Guild (Discord Server / LAN Chapter)
 type GuildData struct {
-	GuildID            string `json:"guildId"`
+	GuildID            string `json:"guildID"`
 	LanFestURL         string `json:"lanFestURL"`
 	NewsURL            string `json:"newsURL"`
 	AnnounceChannelID  string `json:"announceChannelID"`
 	AttendeeRoleID     string `json:"attendeeRoleID"`
 	PastAttendeeRoleID string `json:"pastAttendeeRoleID"`
+	LFGCategoryID      string `json:"lfgCategoryID"`
 	LANMode            bool
 	NextLANData        LANPartyData   `json:"nextLANData"`
 	PastLANData        []LANPartyData `json:"pastLANData"`
+	LFGData            []LFGData      `json:"lfgData"`
 }
 
 // LANPartyData : Information on the next upcoming LANParty
@@ -26,4 +28,11 @@ type LANPartyData struct {
 	TicketURL        string    `json:"ticketURL"`
 	TicketDate       time.Time `json:"ticketDate"`
 	LastAnnounceDate time.Time `json:"lastAnnounceDate"`
+}
+
+type LFGData struct {
+	ChannelID  string    `json:"channelID"`
+	Capacity   int       `json:"capacity"`
+	OwnerID    string    `json:"ownerID"`
+	CreateDate time.Time `json:"createDate"`
 }
