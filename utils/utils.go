@@ -63,8 +63,18 @@ func IsOwner(user *discordgo.User) bool {
 
 // IsDM : Is this message a DM?
 func IsDM(message *discordgo.Message) bool {
+	return IsChannelType(message, discordgo.ChannelTypeDM) || IsChannelType(message, discordgo.ChannelTypeGroupDM)
+}
+
+// IsGuildMessage : Is this message a Guild Text message?
+func IsGuildMessage(message *discordgo.Message) bool {
+	return IsChannelType(message, discordgo.ChannelTypeGuildText)
+}
+
+// IsChannelType : Is this message from the specified channel type?
+func IsChannelType(message *discordgo.Message, chanType discordgo.ChannelType) bool {
 	channel, _ := data.Globals().Session.Channel(message.ChannelID)
-	return channel.Type == discordgo.ChannelTypeDM
+	return channel.Type == chanType
 }
 
 // LPrint : wrapper for fmt.Print that appends a newline

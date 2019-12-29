@@ -46,7 +46,8 @@ func main() {
 	utils.ReadConfig()
 
 	// Set up command handlers
-	globalData.CommandHandlers = []interface{}{chapter.PartyOnCommandHandler, admin.WriteConfigCommandHandler, admin.ShutdownCommandHandler, user.LFGCommandHandler}
+	globalData.GuildCommandHandlers = []interface{}{chapter.PartyOnCommandHandler, user.LFGCommandHandler}
+	globalData.DMCommandHandlers = []interface{}{admin.WriteConfigDMCommandHandler, admin.ShutdownDMCommandHandler}
 	globalData.ReactionAddHandlers = []interface{}{user.LFGChannelMessageReactionAdd}
 
 	err = discord.Open()
@@ -62,16 +63,23 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 		return
 	}
 
-	if !strings.HasPrefix(message.Content, data.Constants().CommandPrefix) {
-		// It's not a command, nothing to do here.
-		return
-	}
-
-	for _, handler := range data.Globals().CommandHandlers {
-		// Handlers will return true if they 'handled' the message.
-		// This will allow us to circuit-break when we hit the right handler.
-		if handler.(func(*discordgo.Session, *discordgo.MessageCreate) bool)(session, message) {
-			break
+	if strings.HasPrefix(message.Content, data.Constants().GuildCommandPrefix) && utils.IsGuildMessage(message.Message) {
+		// It's a guild command, run through the handlers
+		for _, handler := range data.Globals().GuildCommandHandlers {
+			// Handlers will return true if they 'handled' the message.
+			// This will allow us to circuit-break when we hit the right handler.
+			if handler.(func(*discordgo.Session, *discordgo.MessageCreate) bool)(session, message) {
+				break
+			}
+		}
+	} else if strings.HasPrefix(message.Content, data.Constants().DMCommandPrefix) && utils.IsDM(message.Message) {
+		// It's a DM command, run through the handlers.
+		for _, handler := range data.Globals().DMCommandHandlers {
+			// Handlers will return true if they 'handled' the message.
+			// This allows us to break the circuit once handled.
+			if handler.(func(*discordgo.Session, *discordgo.MessageCreate) bool)(session, message) {
+				break
+			}
 		}
 	}
 

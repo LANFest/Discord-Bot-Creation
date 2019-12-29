@@ -28,8 +28,7 @@ func CreateLFGChannel(session *discordgo.Session, category *discordgo.Channel, g
 		}
 	}
 
-	// go-lint sucks.  Badly.  'Errors can't have punctuation at the end' is the warning here.  What kind of nonsense is that?
-	return nil, fmt.Errorf("Ran out of available channel space for %s -- Perhaps you could join an existing group.", gameName)
+	return nil, fmt.Errorf("Ran out of available channel space for %s -- Perhaps you could join an existing group", gameName)
 }
 
 func newLFGChannelName(gameName string, number int) string {

@@ -21,7 +21,7 @@ import (
 // LFGCommandHandler : Command handler for !lfg
 func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
 	handled := false
-	if !strings.HasPrefix(message.Message.Content, fmt.Sprintf("%slfg ", data.Constants().CommandPrefix)) {
+	if !strings.HasPrefix(message.Message.Content, fmt.Sprintf("%slfg ", data.Constants().GuildCommandPrefix)) {
 		return handled
 	}
 
@@ -30,7 +30,7 @@ func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCre
 	// Should we only allow it during an event?
 
 	handled = true // Yep, this is ours.
-	commandRegex := regexp.MustCompile("^" + data.Constants().CommandPrefix + "lfg \"(.+)\" (\\d+)$")
+	commandRegex := regexp.MustCompile("^" + data.Constants().GuildCommandPrefix + "lfg \"(.+)\" (\\d+)$")
 	commandArgs := commandRegex.FindStringSubmatch(message.Content)
 	if len(commandArgs) < 3 {
 		session.ChannelMessageSend(message.ChannelID, "Usage: !lfg \"<Game Name>\" <NumberOfPlayers>")
