@@ -13,6 +13,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// PartyOnCommandHandler : Command Handler for !partyon
 func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
 	handled := false
 	if !strings.HasPrefix(message.Content, fmt.Sprintf("%spartyon ", data.Constants().CommandPrefix)) {

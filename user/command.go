@@ -18,6 +18,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// LFGCommandHandler : Command handler for !lfg
 func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
 	handled := false
 	if !strings.HasPrefix(message.Message.Content, fmt.Sprintf("%slfg ", data.Constants().CommandPrefix)) {

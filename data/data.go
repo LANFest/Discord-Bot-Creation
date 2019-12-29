@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// ConstantsModel : Struct for hard-coded constants across the app
 type ConstantsModel struct {
 	CommandPrefix  string
 	ConfigFilePath string
@@ -15,6 +16,7 @@ type ConstantsModel struct {
 	DebugOutput    bool
 }
 
+// Constants : Singleton Instance of ConstantsModel
 func Constants() ConstantsModel {
 	file, err := os.Stat("debug.txt")
 
@@ -27,6 +29,7 @@ func Constants() ConstantsModel {
 	}
 }
 
+// GlobalDataModel : Struct for constructed data from config file
 type GlobalDataModel struct {
 	Bot                    *discordgo.User
 	GuildData              []config.GuildData
@@ -38,6 +41,7 @@ type GlobalDataModel struct {
 	Session                *discordgo.Session
 }
 
+// Globals : Singleton instance of GlobalDataModel
 func Globals() *GlobalDataModel {
 	return &data
 }

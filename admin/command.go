@@ -12,6 +12,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// WriteConfigCommandHandler : Command handler for !writeConfig
 func WriteConfigCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
 	if message.Content != fmt.Sprintf("%swriteConfig", data.Constants().CommandPrefix) {
 		return false // wrong handler
@@ -24,6 +25,7 @@ func WriteConfigCommandHandler(session *discordgo.Session, message *discordgo.Me
 	return true
 }
 
+// ShutdownCommandHandler : Command handler for !shutdown
 func ShutdownCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
 	if message.Content != fmt.Sprintf("%sshutdown", data.Constants().CommandPrefix) {
 		return false // wrong handler

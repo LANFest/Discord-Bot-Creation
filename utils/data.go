@@ -25,12 +25,13 @@ func FindGuildByID(targetGuildID string) *config.GuildData {
 	return guild
 }
 
+// GetLFGDataForChannel : Gets any LFGData available for a channel (returns nil if none)
 func GetLFGDataForChannel(guildID string, channelID string) *config.LFGData {
 	guildData := FindGuildByID(guildID)
 	lfgData, ok := linq.From(guildData.LFGData).WhereT(func(lfg config.LFGData) bool { return lfg.ChannelID == channelID }).First().(config.LFGData)
 	if ok {
 		return &lfgData
-	} else {
-		return nil
 	}
+
+	return nil
 }

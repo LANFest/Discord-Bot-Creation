@@ -10,6 +10,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// LFGChannelMessageReactionAdd : ReactionAdd handler for LFG Channel Message
 func LFGChannelMessageReactionAdd(session *discordgo.Session, reaction *discordgo.MessageReactionAdd) bool {
 	handled := false
 

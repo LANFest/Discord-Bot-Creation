@@ -48,6 +48,7 @@ func Assert(msg string, err error, shouldPanic bool) {
 	}
 }
 
+// Shutdown : Shuts down the bot
 func Shutdown(session *discordgo.Session) {
 	LPrint("Shutting Down!")
 	session.Logout()
@@ -55,23 +56,28 @@ func Shutdown(session *discordgo.Session) {
 	os.Exit(0)
 }
 
+// IsOwner : Are you my daddy?
 func IsOwner(user *discordgo.User) bool {
 	return user.ID == data.Globals().Owner.ID
 }
 
+// IsDM : Is this message a DM?
 func IsDM(message *discordgo.Message) bool {
 	channel, _ := data.Globals().Session.Channel(message.ChannelID)
 	return channel.Type == discordgo.ChannelTypeDM
 }
 
+// LPrint : wrapper for fmt.Print that appends a newline
 func LPrint(message string) {
 	fmt.Print(message + "\n")
 }
 
+// LPrintf : wrapper for fmt.Printf that appends a newline
 func LPrintf(format string, a ...interface{}) {
 	fmt.Printf(format+"\n", a...)
 }
 
+// HasGuildPermission : Do I have the specified permission?
 func HasGuildPermission(session *discordgo.Session, guildID string, permissionMask uint) bool {
 	// Get the guild member
 	guildMember, guildErr := session.GuildMember(guildID, data.Globals().Bot.ID)
