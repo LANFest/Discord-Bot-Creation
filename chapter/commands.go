@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LANFest/Discord-Bot-Creation/data"
+	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/bwmarrin/discordgo"
 )
@@ -16,7 +16,7 @@ import (
 // PartyOnCommandHandler : Command Handler for !partyon
 func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
 	handled := false
-	if !strings.HasPrefix(message.Content, fmt.Sprintf("%spartyon ", data.Constants().GuildCommandPrefix)) {
+	if !strings.HasPrefix(message.Content, fmt.Sprintf("%spartyon ", config.Constants().GuildCommandPrefix)) {
 		return handled // Not this command
 	}
 
@@ -31,7 +31,7 @@ func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 		return handled
 	}
 
-	guildData := utils.FindGuildByID(message.GuildID)
+	guildData := config.FindGuildByID(message.GuildID)
 	if guildData.AttendeeRoleID == "" {
 		session.ChannelMessageSend(message.ChannelID, "We can't party!  I don't know what role to assign.")
 		return handled
@@ -53,7 +53,7 @@ func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 		utils.Assert("Unable to add role!", err, false)
 		responseMessage += "<@" + mention.ID + ">! "
 	}
-	responseMessage += data.Constants().PartyOnLink
+	responseMessage += config.Constants().PartyOnLink
 
 	session.ChannelMessageSend(message.ChannelID, responseMessage)
 	return handled

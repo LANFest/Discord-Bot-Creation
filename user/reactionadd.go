@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/bwmarrin/discordgo"
@@ -14,7 +15,7 @@ import (
 func LFGChannelMessageReactionAdd(session *discordgo.Session, reaction *discordgo.MessageReactionAdd) bool {
 	handled := false
 
-	lfgData := utils.GetLFGDataForChannel(reaction.GuildID, reaction.ChannelID)
+	lfgData := config.GetLFGDataForChannel(reaction.GuildID, reaction.ChannelID)
 	if lfgData == nil {
 		return handled
 	}

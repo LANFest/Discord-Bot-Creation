@@ -6,30 +6,31 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/LANFest/Discord-Bot-Creation/data"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/bwmarrin/discordgo"
+
+	"github.com/LANFest/Discord-Bot-Creation/config"
 )
 
 // ReadConfig : Reads in the config data from the file and populates the supplied pointer
 func ReadConfig() {
-	file, readError := ioutil.ReadFile(data.Constants().ConfigFilePath)
+	file, readError := ioutil.ReadFile(config.Constants().ConfigFilePath)
 	Assert("Error reading Config Data", readError, false)
 
-	parseError := json.Unmarshal(file, &data.Globals().GuildData)
+	parseError := json.Unmarshal(file, &config.Globals().GuildData)
 	Assert("Error parsing Config Data", parseError, false)
 }
 
 // WriteConfig : Writes the config data to disk
 func WriteConfig() {
-	file, _ := json.MarshalIndent(data.Globals().GuildData, "", " ")
-	error := ioutil.WriteFile(data.Constants().ConfigFilePath, file, 0644)
+	file, _ := json.MarshalIndent(config.Globals().GuildData, "", " ")
+	error := ioutil.WriteFile(config.Constants().ConfigFilePath, file, 0644)
 	Assert("Error writing config data!", error, false)
 }
 
 // FindRole : finds the requested Role within the list of Roles from the specified Guild
 func FindRole(guildID string, roleID string) *discordgo.Role {
-	tempGuild, _ := data.Globals().Session.Guild(guildID)
+	tempGuild, _ := config.Globals().Session.Guild(guildID)
 	for _, role := range tempGuild.Roles {
 		if role.ID == roleID {
 			return role
@@ -58,7 +59,7 @@ func Shutdown(session *discordgo.Session) {
 
 // IsOwner : Are you my daddy?
 func IsOwner(user *discordgo.User) bool {
-	return user.ID == data.Globals().Owner.ID
+	return user.ID == config.Globals().Owner.ID
 }
 
 // IsDM : Is this message a DM?
@@ -73,7 +74,7 @@ func IsGuildMessage(message *discordgo.Message) bool {
 
 // IsChannelType : Is this message from the specified channel type?
 func IsChannelType(message *discordgo.Message, chanType discordgo.ChannelType) bool {
-	channel, _ := data.Globals().Session.Channel(message.ChannelID)
+	channel, _ := config.Globals().Session.Channel(message.ChannelID)
 	return channel.Type == chanType
 }
 
@@ -90,7 +91,7 @@ func LPrintf(format string, a ...interface{}) {
 // HasGuildPermission : Do I have the specified permission?
 func HasGuildPermission(session *discordgo.Session, guildID string, permissionMask uint) bool {
 	// Get the guild member
-	guildMember, guildErr := session.GuildMember(guildID, data.Globals().Bot.ID)
+	guildMember, guildErr := session.GuildMember(guildID, config.Globals().Bot.ID)
 	if guildErr != nil {
 		return false
 	}

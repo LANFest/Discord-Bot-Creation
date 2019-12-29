@@ -7,7 +7,6 @@ import (
 	"github.com/LANFest/Discord-Bot-Creation/admin"
 	"github.com/LANFest/Discord-Bot-Creation/chapter"
 	"github.com/LANFest/Discord-Bot-Creation/config"
-	"github.com/LANFest/Discord-Bot-Creation/data"
 	"github.com/LANFest/Discord-Bot-Creation/user"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/bwmarrin/discordgo"
@@ -19,7 +18,7 @@ var (
 )
 
 func main() {
-	globalData := data.Globals()
+	globalData := config.Globals()
 	file, readError := ioutil.ReadFile("token.txt")
 	utils.Assert("Error reading token file", readError, true)
 
@@ -63,18 +62,18 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 		return
 	}
 
-	if strings.HasPrefix(message.Content, data.Constants().GuildCommandPrefix) && utils.IsGuildMessage(message.Message) {
+	if strings.HasPrefix(message.Content, config.Constants().GuildCommandPrefix) && utils.IsGuildMessage(message.Message) {
 		// It's a guild command, run through the handlers
-		for _, handler := range data.Globals().GuildCommandHandlers {
+		for _, handler := range config.Globals().GuildCommandHandlers {
 			// Handlers will return true if they 'handled' the message.
 			// This will allow us to circuit-break when we hit the right handler.
 			if handler.(func(*discordgo.Session, *discordgo.MessageCreate) bool)(session, message) {
 				break
 			}
 		}
-	} else if strings.HasPrefix(message.Content, data.Constants().DMCommandPrefix) && utils.IsDM(message.Message) {
+	} else if strings.HasPrefix(message.Content, config.Constants().DMCommandPrefix) && utils.IsDM(message.Message) {
 		// It's a DM command, run through the handlers.
-		for _, handler := range data.Globals().DMCommandHandlers {
+		for _, handler := range config.Globals().DMCommandHandlers {
 			// Handlers will return true if they 'handled' the message.
 			// This allows us to break the circuit once handled.
 			if handler.(func(*discordgo.Session, *discordgo.MessageCreate) bool)(session, message) {
@@ -83,15 +82,15 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 		}
 	}
 
-	if data.Constants().DebugOutput {
+	if config.Constants().DebugOutput {
 		utils.LPrintf("Message: %+v || From: %s", message.Message, message.Author)
 	}
 }
 
 func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
-	globalData := data.Globals()
+	globalData := config.Globals()
 	globalData.Session = discord
-	err := discord.UpdateStatus(0, data.Constants().StatusMessage)
+	err := discord.UpdateStatus(0, config.Constants().StatusMessage)
 	if err != nil {
 		utils.LPrintf("Error attempting to set my status: %s", err)
 	}
@@ -113,8 +112,11 @@ func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 	utils.LPrintf("Servers (%d):", len(servers))
 	for _, server := range servers {
 		utils.LPrintf("%s - %s", server.Name, server.ID)
-		validateGuildCoreData(server, utils.FindGuildByID(server.ID)) // utils.FindGuildByID has a side-effect of putting the server into the global collection
+		validateGuildCoreData(server, config.FindGuildByID(server.ID)) // utils.FindGuildByID has a side-effect of putting the server into the global collection
 	}
+
+	globalData.GuildSetups = config.BuildGuildSetupDataList()
+	chapter.PromptSetupSteps()
 
 	utils.WriteConfig()
 }
@@ -125,7 +127,7 @@ func coreReactionAddHandler(session *discordgo.Session, reaction *discordgo.Mess
 		return // Ignore when bots add reactions to things.
 	}
 
-	for _, handler := range data.Globals().ReactionAddHandlers {
+	for _, handler := range config.Globals().ReactionAddHandlers {
 		// Handlers will return true if they 'handled' the message.
 		// This will allow us to circuit-break when we hit the right handler.
 		if handler.(func(*discordgo.Session, *discordgo.MessageReactionAdd) bool)(session, reaction) {
@@ -133,7 +135,7 @@ func coreReactionAddHandler(session *discordgo.Session, reaction *discordgo.Mess
 		}
 	}
 
-	if data.Constants().DebugOutput {
+	if config.Constants().DebugOutput {
 		utils.LPrintf("Reaction Add: %+v || From: %s", reaction, user)
 	}
 }
@@ -144,7 +146,7 @@ func coreReactionRemoveHandler(session *discordgo.Session, reaction *discordgo.M
 		return // Ignore when bots add reactions to things.
 	}
 
-	for _, handler := range data.Globals().ReactionDeleteHandlers {
+	for _, handler := range config.Globals().ReactionDeleteHandlers {
 		// Handlers will return true if they 'handled' the message.
 		// This will allow us to circuit-break when we hit the right handler.
 		if handler.(func(*discordgo.Session, *discordgo.MessageReactionRemove) bool)(session, reaction) {
@@ -152,7 +154,7 @@ func coreReactionRemoveHandler(session *discordgo.Session, reaction *discordgo.M
 		}
 	}
 
-	if data.Constants().DebugOutput {
+	if config.Constants().DebugOutput {
 		utils.LPrintf("Reaction Delete: %+v || From: %s", reaction, user)
 	}
 }
@@ -166,18 +168,18 @@ func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildD
 			foundLFG = true
 		} else if channel.ID == guildDataModel.AnnounceChannelID { // Found our AnnounceChannel! Still good.
 			foundAnnounce = true
-		} else {
-			switch channel.Type {
-			case discordgo.ChannelTypeGuildCategory:
-				if strings.ToLower(channel.Name) == "lfg" && guildDataModel.LFGCategoryID == "" { // We only want to set if it's blank.
-					guildDataModel.LFGCategoryID = channel.ID
-				}
-				break
-			case discordgo.ChannelTypeGuildText:
-				if strings.ToLower(channel.Name) == "announcements" && guildDataModel.AnnounceChannelID == "" { // We only want to set if it's blank.
-					guildDataModel.AnnounceChannelID = channel.ID
-				}
-			}
+			// } else {
+			// 	switch channel.Type {
+			// 	case discordgo.ChannelTypeGuildCategory:
+			// 		if strings.ToLower(channel.Name) == "lfg" && guildDataModel.LFGCategoryID == "" { // We only want to set if it's blank.
+			// 			guildDataModel.LFGCategoryID = channel.ID
+			// 		}
+			// 		break
+			// 	case discordgo.ChannelTypeGuildText:
+			// 		if strings.ToLower(channel.Name) == "announcements" && guildDataModel.AnnounceChannelID == "" { // We only want to set if it's blank.
+			// 			guildDataModel.AnnounceChannelID = channel.ID
+			// 		}
+			// 	}
 		}
 	}
 
@@ -194,12 +196,12 @@ func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildD
 			foundAttendee = true
 		} else if role.ID == guildDataModel.PastAttendeeRoleID { // Found our PastAttendeeRole! Still good.
 			foundPastAttendee = true
-		} else {
-			if strings.ToLower(role.Name) == "attendee" && guildDataModel.AttendeeRoleID == "" { // We only want to set if it's blank.
-				guildDataModel.AttendeeRoleID = role.ID
-			} else if strings.ToLower(role.Name) == "pastattendee" && guildDataModel.PastAttendeeRoleID == "" { // We only want to set if it's blank.
-				guildDataModel.PastAttendeeRoleID = role.ID
-			}
+			// } else {
+			// 	if strings.ToLower(role.Name) == "attendee" && guildDataModel.AttendeeRoleID == "" { // We only want to set if it's blank.
+			// 		guildDataModel.AttendeeRoleID = role.ID
+			// 	} else if strings.ToLower(role.Name) == "pastattendee" && guildDataModel.PastAttendeeRoleID == "" { // We only want to set if it's blank.
+			// 		guildDataModel.PastAttendeeRoleID = role.ID
+			// 	}
 		}
 	}
 

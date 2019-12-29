@@ -7,14 +7,14 @@ package admin
 import (
 	"fmt"
 
-	"github.com/LANFest/Discord-Bot-Creation/data"
+	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/bwmarrin/discordgo"
 )
 
 // WriteConfigDMCommandHandler : Command handler for !writeConfig
 func WriteConfigDMCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
-	if message.Content != fmt.Sprintf("%swriteConfig", data.Constants().DMCommandPrefix) {
+	if message.Content != fmt.Sprintf("%swriteConfig", config.Constants().DMCommandPrefix) {
 		return false // wrong handler
 	}
 
@@ -27,7 +27,7 @@ func WriteConfigDMCommandHandler(session *discordgo.Session, message *discordgo.
 
 // ShutdownDMCommandHandler : Command handler for !shutdown
 func ShutdownDMCommandHandler(session *discordgo.Session, message *discordgo.MessageCreate) bool {
-	if message.Content != fmt.Sprintf("%sshutdown", data.Constants().DMCommandPrefix) {
+	if message.Content != fmt.Sprintf("%sshutdown", config.Constants().DMCommandPrefix) {
 		return false // wrong handler
 	}
 
