@@ -46,8 +46,15 @@ func main() {
 	utils.ReadConfig()
 
 	// Set up command handlers
-	globalData.CommandHandlers = []interface{}{chapter.PartyOnCommandHandler, admin.WriteConfigCommandHandler, admin.ShutdownCommandHandler, user.LFGCommandHandler}
-	globalData.ReactionAddHandlers = []interface{}{user.LFGChannelMessageReactionAdd}
+	globalData.CommandHandlers = []interface{}{
+		chapter.PartyOnCommandHandler,
+		admin.WriteConfigCommandHandler,
+		admin.ShutdownCommandHandler,
+		user.LFGCommandHandler,
+	}
+	globalData.ReactionAddHandlers = []interface{}{
+		user.LFGChannelMessageReactionAdd,
+	}
 
 	err = discord.Open()
 	utils.Assert("Error opening connection to Discord", err, true)

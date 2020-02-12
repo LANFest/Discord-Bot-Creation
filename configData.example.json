@@ -1,0 +1,40 @@
+[
+  {
+    "guildID": "123456789012345678",
+    "lanFestURL": "https://www.lanfest.com/demo",
+    "newsURL": "https://www.lanfest.com/news",
+    "announceChannelID": "676679288900026378",
+    "attendeeRoleID": "676679554756116481",
+    "pastAttendeeRoleID": "676679626554212362",
+    "lfgCategoryID": "676680867988373516",
+    "LANMode": false,
+    "nextLANData": {
+      "name": "Demo LANFest",
+      "startDate": "2020-04-03T10:00:00-08:00",
+      "activateDate": "2020-01-01T09:00:00-08:00",
+      "capacity": 100,
+      "ticketURL": "https://www.lanfest.com/events/demoevent20/register",
+      "ticketDate": "2020-01-01T09:00:00-08:00",
+      "lastAnnounceDate": "2020-01-01T09:00:00-08:00"
+    },
+    "pastLANData": [
+      {
+        "name": "Demo LANFest Old",
+        "startDate": "2020-02-21T09:00:00-08:00",
+        "activateDate": "2020-01-01T09:00:00-08:00",
+        "capacity": 100,
+        "ticketURL": "https://www.lanfest.com/events/demoevent0/register",
+        "ticketDate": "2020-01-01T09:00:00-08:00",
+        "lastAnnounceDate": "2020-01-01T09:00:00-08:00"
+      }
+    ],
+    "lfgData": [
+      {
+        "channelID": "676680907142332417",
+        "capacity": 8,
+        "ownerID": "106153446477967360",
+        "createDate": "2020-01-01T09:00:00-08:00"
+      }
+    ]
+  }
+]
