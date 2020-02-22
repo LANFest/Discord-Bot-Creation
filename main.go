@@ -48,6 +48,7 @@ func main() {
 	// Set up command handlers
 	globalData.CommandHandlers = []interface{}{
 		chapter.PartyOnCommandHandler,
+		chapter.CreateEventCommandHandler,
 		admin.WriteConfigCommandHandler,
 		admin.ShutdownCommandHandler,
 		user.LFGCommandHandler,

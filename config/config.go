@@ -21,15 +21,17 @@ type GuildData struct {
 
 // LANPartyData : Information on the next upcoming LANParty
 type LANPartyData struct {
-	Name             string    `json:"name"`
-	StartDate        time.Time `json:"startDate"`
-	ActivateDate     time.Time `json:"activateDate"`
-	Capacity         int       `json:"capacity"`
-	TicketURL        string    `json:"ticketURL"`
-	TicketDate       time.Time `json:"ticketDate"`
-	LastAnnounceDate time.Time `json:"lastAnnounceDate"`
+	Name               string    `json:"name"`
+	StartDate          time.Time `json:"startDate"`
+	ActivateDate       time.Time `json:"activateDate"`
+	Capacity           int       `json:"capacity"`
+	TicketURL          string    `json:"ticketURL"`
+	TicketDate         time.Time `json:"ticketDate"`
+	LastAnnounceDate   time.Time `json:"lastAnnounceDate"`
+	CountdownChannelID string    `json:"countdownChannelID"`
 }
 
+// LFGData : Looking for group entry information.
 type LFGData struct {
 	ChannelID  string    `json:"channelID"`
 	Capacity   int       `json:"capacity"`
