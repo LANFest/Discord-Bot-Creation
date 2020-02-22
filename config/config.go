@@ -7,7 +7,7 @@ import (
 // GuildData : All Data for a particular Guild (Discord Server / LAN Chapter)
 type GuildData struct {
 	GuildID            string `json:"guildID"`
-	LanFestURL         string `json:"lanFestURL"`
+	LANFestURL         string `json:"lanFestURL"`
 	NewsURL            string `json:"newsURL"`
 	AnnounceChannelID  string `json:"announceChannelID"`
 	AttendeeRoleID     string `json:"attendeeRoleID"`
