@@ -46,15 +46,15 @@ func PromptSetupStepByUser(user *discordgo.User, guild *discordgo.Guild, step co
 		message = fmt.Sprintf("In **%s**, what is the URL for your LanFest chapter? (ex: https://lanfest.com/emeraldcity)", guild.Name)
 		break
 	case config.GuildSetupStepConfirmAuthorizedUser:
-		message = fmt.Sprintf("We need your help to set up correctly for **%s**!\nIf you can help, type **!me!**.  If you are unable to help us set up, type the following into one of your server channels: **!authorizeUser <User>** where <User> is a user on the server.", guild.Name)
+		message = fmt.Sprintf("We need your help to set up correctly for **%s**!\nIf you can help, type **me!**.  If you are unable to help us set up, type the following into one of your server channels: **!authorizeUser <User>** where <User> is a user on the server.", guild.Name)
 		break
 	case config.GuildSetupStepNewsletterURL:
-		message = fmt.Sprintf("In **%s**, what is the signup URL for your chapter newsletter? (ex: https://tempuri.org/signup.asp or !noNews! if you don't have one.)", guild.Name)
+		message = fmt.Sprintf("In **%s**, what is the signup URL for your chapter newsletter? (ex: https://tempuri.org/signup.asp or noNews! if you don't have one.)", guild.Name)
 		break
 	case config.GuildSetupStepPastAttendeeRole:
 		message = fmt.Sprintf("In **%s**, what is the name of the role you would like to grant to previous attendees? (usually @PastAttendee)", guild.Name)
 		break
 	}
 
-	utils.SendMessageToUser(user.ID, message)
+	utils.SendDMToUser(user.ID, message)
 }

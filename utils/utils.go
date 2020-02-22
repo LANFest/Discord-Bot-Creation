@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/bwmarrin/discordgo"
@@ -30,13 +31,38 @@ func WriteConfig() {
 
 // FindRole : finds the requested Role within the list of Roles from the specified Guild
 func FindRole(guildID string, roleID string) *discordgo.Role {
-	tempGuild, _ := config.Globals().Session.Guild(guildID)
-	for _, role := range tempGuild.Roles {
-		if role.ID == roleID {
-			return role
-		}
+	tempGuild, guildError := config.Globals().Session.Guild(guildID)
+	if guildError != nil {
+		LogErrorf("FindRole", "Missing Guild: %s", guildID)
+		return nil
 	}
-	return new(discordgo.Role)
+
+	role, ok := linq.From(tempGuild.Roles).FirstWithT(func(r *discordgo.Role) bool { return r.ID == roleID }).(*discordgo.Role)
+	if !ok {
+		LogErrorf("FindRole", "Missing Role %s in Guild %s", roleID, guildID)
+		return nil
+	}
+
+	return role
+}
+
+// FindChannelByName : Finds a Channel by name
+func FindChannelByName(guild *discordgo.Guild, channelType discordgo.ChannelType, channelName string) *discordgo.Channel {
+	// Looking for a text channel and forgot the #? Let's add it.
+	if channelType == discordgo.ChannelTypeGuildText && !strings.HasPrefix(channelName, "#") {
+		channelName = fmt.Sprintf("#%s", channelName)
+	}
+
+	channel, ok := linq.From(guild.Channels).FirstWithT(func(c *discordgo.Channel) bool {
+		return c.Type == channelType && strings.ToLower(c.Name) == strings.ToLower(channelName)
+	}).(*discordgo.Channel)
+
+	if !ok {
+		LogErrorf("FindChannelByName", "Could not find text Channel named |%s| in Guild %s", channelName, guild.ID)
+		return nil
+	}
+
+	return channel
 }
 
 // Assert : if error exists, panic.
@@ -119,8 +145,8 @@ func HasGuildPermission(session *discordgo.Session, guildID string, permissionMa
 	return false
 }
 
-// SendMessageToUser : Sends a message to a user (opening a DM if none exist.)
-func SendMessageToUser(userID string, message string) {
+// SendDMToUser : Sends a message to a user (opening a DM if none exist.)
+func SendDMToUser(userID string, message string) {
 	session := config.Globals().Session
 	channels, _ := session.UserChannels()
 	channel, ok := linq.From(channels).FirstWithT(func(uc *discordgo.Channel) bool {
@@ -140,4 +166,15 @@ func SendMessageToUser(userID string, message string) {
 	}
 
 	session.ChannelMessageSend(channel.ID, message)
+}
+
+// LogErrorf : LogError but with formatting!
+func LogErrorf(componentName string, format string, a ...interface{}) {
+	message := fmt.Sprintf(format, a...)
+	LogError(componentName, message)
+}
+
+// LogError : Logs an error
+func LogError(componentName string, message string) {
+	LPrintf("$s: %s", componentName, message)
 }

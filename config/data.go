@@ -45,7 +45,7 @@ func FindGuildByID(targetGuildID string) *GuildData {
 // GetLFGDataForChannel : Gets any LFGData available for a channel (returns nil if none)
 func GetLFGDataForChannel(guildID string, channelID string) *LFGData {
 	guildData := FindGuildByID(guildID)
-	lfgData, ok := linq.From(guildData.LFGData).WhereT(func(lfg LFGData) bool { return lfg.ChannelID == channelID }).First().(LFGData)
+	lfgData, ok := linq.From(guildData.LFGData).FirstWithT(func(lfg LFGData) bool { return lfg.ChannelID == channelID }).(LFGData)
 	if ok {
 		return &lfgData
 	}
@@ -62,27 +62,34 @@ func BuildOwnerSetupDataList() {
 		newGuildSetup.GuildID = guild.ID
 
 		newOwnerID := guildData.AuthorizedUserID
-
 		if guildData.AuthorizedUserID == "" {
-			newGuildSetup.SetupStep = GuildSetupStepConfirmAuthorizedUser
 			newOwnerID = guild.OwnerID
-		} else if guildData.LanFestURL == "" {
-			newGuildSetup.SetupStep = GuildSetupStepChapterURL
-		} else if guildData.NewsURL != "" {
-			newGuildSetup.SetupStep = GuildSetupStepNewsletterURL
-		} else if guildData.AnnounceChannelID != "" {
-			newGuildSetup.SetupStep = GuildSetupStepAnnouncementChannel
-		} else if guildData.AttendeeRoleID != "" {
-			newGuildSetup.SetupStep = GuildSetupStepAttendeeRole
-		} else if guildData.PastAttendeeRoleID != "" {
-			newGuildSetup.SetupStep = GuildSetupStepPastAttendeeRole
-		} else {
-			// All of the setup data is complete, no need to add to the list.
-			continue
 		}
 
-		upsertGuildSetup(newGuildSetup, newOwnerID)
+		setupStep := GetNextGuildSetupStep(guildData)
+
+		if setupStep != GuildSetupStepComplete {
+			upsertGuildSetup(newGuildSetup, newOwnerID)
+		}
 	}
+}
+
+// GetNextGuildSetupStep : Takes a GuildData and figures out the next setup step.
+func GetNextGuildSetupStep(guildData *GuildData) GuildSetupStep {
+	if guildData.AuthorizedUserID == "" {
+		return GuildSetupStepConfirmAuthorizedUser
+	} else if guildData.LanFestURL == "" {
+		return GuildSetupStepChapterURL
+	} else if guildData.NewsURL != "" {
+		return GuildSetupStepNewsletterURL
+	} else if guildData.AnnounceChannelID != "" {
+		return GuildSetupStepAnnouncementChannel
+	} else if guildData.AttendeeRoleID != "" {
+		return GuildSetupStepAttendeeRole
+	} else if guildData.PastAttendeeRoleID != "" {
+		return GuildSetupStepPastAttendeeRole
+	}
+	return GuildSetupStepComplete
 }
 
 func upsertGuildSetup(guildSetup GuildSetupData, ownerID string) {

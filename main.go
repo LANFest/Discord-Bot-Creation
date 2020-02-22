@@ -9,6 +9,7 @@ import (
 	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/user"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
+	"github.com/ahmetb/go-linq"
 	"github.com/bwmarrin/discordgo"
 	"github.com/ghodss/yaml"
 )
@@ -81,19 +82,24 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 				break
 			}
 		}
-	} else if strings.HasPrefix(message.Content, config.Constants().DMCommandPrefix) && utils.IsDM(message.Message) {
-		// It's a DM command, run through the handlers.
-		for _, handler := range config.Globals().DMCommandHandlers {
-			// Handlers will return true if they 'handled' the message.
-			// This allows us to break the circuit once handled.
-			if handler.(func(*discordgo.Session, *discordgo.MessageCreate) bool)(session, message) {
-				break
+	} else if utils.IsDM(message.Message) {
+		if strings.HasPrefix(message.Content, config.Constants().DMCommandPrefix) {
+			// It's a DM command, run through the handlers.
+			for _, handler := range config.Globals().DMCommandHandlers {
+				// Handlers will return true if they 'handled' the message.
+				// This allows us to break the circuit once handled.
+				if handler.(func(*discordgo.Session, *discordgo.MessageCreate) bool)(session, message) {
+					break
+				}
 			}
+		} else if linq.From(config.Globals().OwnerSetups).AnyWithT(func(os config.OwnerSetups) bool { return os.OwnerID == message.Author.ID }) {
+			// It is potentially a config response.  Run through the handler.
+			chapter.ConfigResponseDMHandler(message.Author, message)
 		}
 	}
 
 	if config.Constants().DebugOutput {
-		utils.LPrintf("Message: %+v || From: %s", message.Message, message.Author)
+		utils.LogErrorf("Main", "Message: %+v || From: %s", message.Message, message.Author)
 	}
 }
 
