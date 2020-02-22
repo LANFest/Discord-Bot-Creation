@@ -88,4 +88,5 @@ const (
 	GuildSetupStepAnnouncementChannel
 	GuildSetupStepAttendeeRole
 	GuildSetupStepPastAttendeeRole
+	GuildSetupStepComplete
 )
