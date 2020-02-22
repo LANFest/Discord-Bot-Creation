@@ -19,7 +19,7 @@ type ConstantsModel struct {
 // GuildData : All Data for a particular Guild (Discord Server / LAN Chapter)
 type GuildData struct {
 	GuildID            string `json:"guildID"`
-	AuthorizedUserID   string `json:"AuthorizedUserID"`
+	AuthorizedUserID   string `json:"authorizedUserID"`
 	LanFestURL         string `json:"lanFestURL"`
 	NewsURL            string `json:"newsURL"`
 	AnnounceChannelID  string `json:"announceChannelID"`
@@ -86,6 +86,7 @@ const (
 	GuildSetupStepChapterURL
 	GuildSetupStepNewsletterURL
 	GuildSetupStepAnnouncementChannel
+	GuildSetupStepLFGCategory
 	GuildSetupStepAttendeeRole
 	GuildSetupStepPastAttendeeRole
 	GuildSetupStepComplete

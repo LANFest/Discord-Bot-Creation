@@ -81,7 +81,7 @@ func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCre
 
 	lfgData := config.LFGData{ChannelID: newChannel.ID, Capacity: capacity, OwnerID: message.Author.ID, CreateDate: time.Now()}
 	guildModel.LFGData = append(guildModel.LFGData, lfgData)
-	utils.WriteConfig()
+	config.WriteConfig()
 
 	session.MessageReactionAdd(message.ChannelID, message.ID, ThumbsUpEmoji)
 	session.ChannelMessageSend(message.ChannelID, fmt.Sprintf("<@%s> has been added to the LFG queue in %s for the next 4 hours.", message.Message.Author.ID, newChannel.Name))

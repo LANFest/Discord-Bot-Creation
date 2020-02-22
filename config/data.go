@@ -1,9 +1,13 @@
 package config
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
 
+	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/ahmetb/go-linq"
+	"github.com/bwmarrin/discordgo"
 )
 
 // Constants : Singleton Instance of ConstantsModel
@@ -66,10 +70,14 @@ func BuildOwnerSetupDataList() {
 			newOwnerID = guild.OwnerID
 		}
 
-		setupStep := GetNextGuildSetupStep(guildData)
+		newGuildSetup.SetupStep = GetNextGuildSetupStep(guildData)
 
-		if setupStep != GuildSetupStepComplete {
-			upsertGuildSetup(newGuildSetup, newOwnerID)
+		if newGuildSetup.SetupStep != GuildSetupStepComplete {
+			UpsertGuildSetup(newGuildSetup, newOwnerID)
+		}
+
+		if Constants().DebugOutput {
+			utils.LogErrorf("BuildOwnerSetupDataList", "Guild Setup for %s : %d", guild.Name, newGuildSetup.SetupStep)
 		}
 	}
 }
@@ -80,19 +88,22 @@ func GetNextGuildSetupStep(guildData *GuildData) GuildSetupStep {
 		return GuildSetupStepConfirmAuthorizedUser
 	} else if guildData.LanFestURL == "" {
 		return GuildSetupStepChapterURL
-	} else if guildData.NewsURL != "" {
+	} else if guildData.NewsURL == "" {
 		return GuildSetupStepNewsletterURL
-	} else if guildData.AnnounceChannelID != "" {
+	} else if guildData.AnnounceChannelID == "" {
 		return GuildSetupStepAnnouncementChannel
-	} else if guildData.AttendeeRoleID != "" {
+	} else if guildData.LFGCategoryID == "" {
+		return GuildSetupStepLFGCategory
+	} else if guildData.AttendeeRoleID == "" {
 		return GuildSetupStepAttendeeRole
-	} else if guildData.PastAttendeeRoleID != "" {
+	} else if guildData.PastAttendeeRoleID == "" {
 		return GuildSetupStepPastAttendeeRole
 	}
 	return GuildSetupStepComplete
 }
 
-func upsertGuildSetup(guildSetup GuildSetupData, ownerID string) {
+// UpsertGuildSetup : Updates the global Owner setups with the specified guildsetup
+func UpsertGuildSetup(guildSetup GuildSetupData, ownerID string) {
 	ownerSetup, ok := linq.From(Globals().OwnerSetups).FirstWithT(func(o OwnerSetups) bool { return o.OwnerID == ownerID }).(OwnerSetups)
 	if ok {
 		ownerSetup.GuildSetups = append(ownerSetup.GuildSetups, guildSetup)
@@ -102,4 +113,25 @@ func upsertGuildSetup(guildSetup GuildSetupData, ownerID string) {
 		newOwnerSetup.GuildSetups = []GuildSetupData{guildSetup}
 		Globals().OwnerSetups = append(Globals().OwnerSetups, newOwnerSetup)
 	}
+}
+
+// ReadConfig : Reads in the config data from the file and populates the supplied pointer
+func ReadConfig() {
+	file, readError := ioutil.ReadFile(Constants().ConfigFilePath)
+	utils.Assert("Error reading Config Data", readError, false)
+
+	parseError := json.Unmarshal(file, &Globals().GuildData)
+	utils.Assert("Error parsing Config Data", parseError, false)
+}
+
+// WriteConfig : Writes the config data to disk
+func WriteConfig() {
+	file, _ := json.MarshalIndent(Globals().GuildData, "", " ")
+	error := ioutil.WriteFile(Constants().ConfigFilePath, file, 0644)
+	utils.Assert("Error writing config data!", error, false)
+}
+
+// IsOwner : Are you my daddy?
+func IsOwner(user *discordgo.User) bool {
+	return user.ID == Globals().Owner.ID
 }

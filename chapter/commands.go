@@ -6,6 +6,7 @@ package chapter
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/LANFest/Discord-Bot-Creation/config"
@@ -43,7 +44,7 @@ func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 		return handled
 	}
 
-	if utils.FindRole(message.GuildID, guildData.AttendeeRoleID) == nil {
+	if utils.FindRole(session, message.GuildID, guildData.AttendeeRoleID) == nil {
 		session.ChannelMessageSend(message.ChannelID, "Invalid Attendee Role Stored!")
 		return handled
 	}
@@ -61,8 +62,8 @@ func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 }
 
 // ConfigResponseDMHandler : parses DMs from Chapter Heads to listen for answers to configuration questions.
-func ConfigResponseDMHandler(user *discordgo.User, message *discordgo.MessageCreate) {
-	session := config.Globals().Session
+func ConfigResponseDMHandler(session *discordgo.Session, user *discordgo.User, message *discordgo.MessageCreate) {
+	utils.LPrintf("%+v", config.Globals().OwnerSetups)
 
 	// Validate our data
 	ownerSetup, ok := linq.From(config.Globals().OwnerSetups).FirstWithT(func(os config.OwnerSetups) bool { return os.OwnerID == user.ID }).(config.OwnerSetups)
@@ -76,7 +77,7 @@ func ConfigResponseDMHandler(user *discordgo.User, message *discordgo.MessageCre
 		return
 	}
 
-	guildSetup := ownerSetup.GuildSetups[0]
+	guildSetup := &ownerSetup.GuildSetups[0]
 	guild, guildErr := session.Guild(guildSetup.GuildID)
 	if guildErr != nil {
 		utils.LogErrorf("ConfigResponseDMHandler", "Guild %s doesn't exist!", guildSetup.GuildID)
@@ -97,38 +98,113 @@ func ConfigResponseDMHandler(user *discordgo.User, message *discordgo.MessageCre
 		break
 
 	case config.GuildSetupStepAttendeeRole:
-		return
+		role := validateRoleForGuild(guild, message.Content, user)
+		if role == nil {
+			// validateRoleForGuild sends error messages, so there's nothing to do but bail.
+			return
+		}
+		guildData.AttendeeRoleID = role.ID
+		break
+
 	case config.GuildSetupStepChapterURL:
-		return
+		uri := validateURL(message.Content, user)
+		if uri == nil {
+			//validateURL sends error messages, so there's nothing to do but bail.
+			return
+		}
+		guildData.LanFestURL = uri.String()
+		break
+
 	case config.GuildSetupStepComplete:
 		utils.LogErrorf("ConfigResponseDMHandler", "Found GuildSetupStepComplete on a current GuildSetup! - %s", guild.ID)
 		return
+
 	case config.GuildSetupStepConfirmAuthorizedUser:
 		if message.Content != "me!" {
-			utils.SendDMToUser(user.ID, fmt.Sprintf("ERROR: Invalid.  Are you the correct person to configure server setttings for **%s**?  If you are, type **me!**. If not, type the following into one of your server channels: **!authorizeUser <User>** where <User> is a user on the server.", guild.Name))
+			utils.SendDMToUser(session, user.ID, fmt.Sprintf("ERROR: Invalid.  Are you the correct person to configure server setttings for **%s**?  If you are, type **me!**. If not, type the following into one of your server channels: **!authorizeUser <User>** where <User> is a user on the server.", guild.Name))
 			return
 		}
 		guildData.AuthorizedUserID = user.ID
 		break
+
+	case config.GuildSetupStepLFGCategory:
+		category := validateCategoryForGuild(guild, message.Content, user)
+		if category == nil {
+			//validateCategoryForGuild sends error messages, so there's nothing to do but bail.
+			return
+		}
+		guildData.LFGCategoryID = category.ID
+		break
+
 	case config.GuildSetupStepNewsletterURL:
-		return
+		if message.Content == "noNews!" {
+			guildData.NewsURL = "--"
+			break
+		}
+
+		uri := validateURL(message.Content, user)
+		if uri == nil {
+			//validateURL sends error messages, so there's nothing to do but bail.
+			return
+		}
+		guildData.NewsURL = uri.String()
+		break
+
 	case config.GuildSetupStepPastAttendeeRole:
-		return
+		role := validateRoleForGuild(guild, message.Content, user)
+		if role == nil {
+			// validateRoleForGuild sends error messages, so there's nothing to do but bail.
+			return
+		}
+		guildData.PastAttendeeRoleID = role.ID
+		break
 	}
 
+	// If we got to here, we have a valid response, and should update.
 	guildSetup.SetupStep = config.GetNextGuildSetupStep(guildData)
+	config.WriteConfig()
 	PromptSetupStepByUser(user, guild, guildSetup.SetupStep)
+
+	//Did we finish one?
+	if guildSetup.SetupStep == config.GuildSetupStepComplete {
+		// Delete the first GuildSetup
+		ownerSetup.GuildSetups = ownerSetup.GuildSetups[:len(ownerSetup.GuildSetups)-1]
+
+		// Are there any left?  Prompt them for new stuff!
+		if len(ownerSetup.GuildSetups) > 0 {
+			PromptSetupSteps(user.ID)
+		}
+	}
 }
 
-func validateChannelForGuild(guild *discordgo.Guild, channelName string, suggestion string, target *discordgo.User) *discordgo.Channel {
-	if !strings.HasPrefix(channelName, "#") {
-		utils.SendDMToUser(target.ID, fmt.Sprintf("ERROR: Please enter a channel name! (ex: %s)", suggestion))
+func validateURL(rawURL string, target *discordgo.User) *url.URL {
+	uri, err := url.ParseRequestURI(rawURL)
+	if err != nil || (uri.Scheme != "http" && uri.Scheme != "https") {
+		utils.SendDMToUser(config.Globals().Session, target.ID, fmt.Sprintf("ERROR: Invalid URL format: %s", rawURL))
 		return nil
 	}
 
-	channel := utils.FindChannelByName(guild, discordgo.ChannelTypeGuildText, channelName)
+	return uri
+}
+
+func validateRoleForGuild(guild *discordgo.Guild, roleName string, target *discordgo.User) *discordgo.Role {
+	if strings.HasPrefix(roleName, "@") {
+		// Helpfully strip the @ if it exists.
+		roleName = strings.TrimPrefix(roleName, "@")
+	}
+
+	role := utils.FindRoleByName(guild, roleName)
+	if role == nil {
+		utils.SendDMToUser(config.Globals().Session, target.ID, fmt.Sprintf("ERROR: Discord Server %s doesn't have a role named @%s", guild.Name, roleName))
+	}
+
+	return role
+}
+
+func validateCategoryForGuild(guild *discordgo.Guild, categoryName string, target *discordgo.User) *discordgo.Channel {
+	channel := utils.FindChannelByName(guild, discordgo.ChannelTypeGuildCategory, categoryName)
 	if channel == nil {
-		utils.SendDMToUser(target.ID, fmt.Sprintf("ERROR: Discord Server %s doesn't have a channel named %s", guild.Name, channelName))
+		utils.SendDMToUser(config.Globals().Session, target.ID, fmt.Sprintf("ERROR: Discord server %s doesn't have a category named %s", guild.Name, categoryName))
 	}
 
 	return channel
@@ -136,13 +212,13 @@ func validateChannelForGuild(guild *discordgo.Guild, channelName string, suggest
 
 func validateChannelForGuild(guild *discordgo.Guild, channelName string, suggestion string, target *discordgo.User) *discordgo.Channel {
 	if !strings.HasPrefix(channelName, "#") {
-		utils.SendDMToUser(target.ID, fmt.Sprintf("ERROR: Please enter a channel name! (ex: %s)", suggestion))
+		utils.SendDMToUser(config.Globals().Session, target.ID, fmt.Sprintf("ERROR: Please enter a channel name! (ex: %s)", suggestion))
 		return nil
 	}
 
 	channel := utils.FindChannelByName(guild, discordgo.ChannelTypeGuildText, channelName)
 	if channel == nil {
-		utils.SendDMToUser(target.ID, fmt.Sprintf("ERROR: Discord Server %s doesn't have a channel named %s", guild.Name, channelName))
+		utils.SendDMToUser(config.Globals().Session, target.ID, fmt.Sprintf("ERROR: Discord Server %s doesn't have a channel named %s", guild.Name, channelName))
 	}
 
 	return channel

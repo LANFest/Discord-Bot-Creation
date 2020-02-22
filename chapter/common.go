@@ -5,29 +5,42 @@ import (
 
 	"github.com/LANFest/Discord-Bot-Creation/config"
 	"github.com/LANFest/Discord-Bot-Creation/utils"
+	"github.com/ahmetb/go-linq"
 	"github.com/bwmarrin/discordgo"
 )
 
-// PromptSetupSteps : Iterates through all guilds that need setup and pushes the appropriate DMs.
-func PromptSetupSteps() {
+// PromptSetupSteps : Checks for any necessary configuration steps that a particular owner needs to take.  If "", then do ALL owners.
+func PromptSetupSteps(ownerID string) {
 	session := config.Globals().Session
 
-	for _, setup := range config.Globals().OwnerSetups {
+	var ownerSetups []config.OwnerSetups
+
+	if ownerID == "" {
+		// Do all of them.
+		ownerSetups = config.Globals().OwnerSetups
+	} else {
+		// Just do the specified owner.
+		linq.From(config.Globals().OwnerSetups).WhereT(func(os config.OwnerSetups) bool { return os.OwnerID == ownerID }).ToSlice(&ownerSetups)
+	}
+
+	for _, setup := range ownerSetups {
 
 		user, userErr := session.User(setup.OwnerID)
-		utils.Assert("Missing UserID in PromptSetupSteps! - "+setup.OwnerID, userErr, false)
+		utils.Assert(fmt.Sprintf("Missing UserID in PromptSetupSteps! - %s", setup.OwnerID), userErr, false)
 		if user == nil {
 			continue
 		}
 
 		guildSetup := setup.GuildSetups[0]
 		guild, guildErr := session.Guild(guildSetup.GuildID)
-		utils.Assert("Missing GuildID in PromptSetupSteps! - "+guild.ID, guildErr, false)
+		utils.Assert(fmt.Sprintf("Missing GuildID in PromptSetupSteps! - %s", guild.ID), guildErr, false)
 		if guild == nil {
 			continue
 		}
 
-		PromptSetupStepByUser(user, guild, guildSetup.SetupStep)
+		if guildSetup.SetupStep != config.GuildSetupStepComplete {
+			PromptSetupStepByUser(user, guild, guildSetup.SetupStep)
+		}
 	}
 }
 
@@ -48,13 +61,18 @@ func PromptSetupStepByUser(user *discordgo.User, guild *discordgo.Guild, step co
 	case config.GuildSetupStepConfirmAuthorizedUser:
 		message = fmt.Sprintf("We need your help to set up correctly for **%s**!\nIf you can help, type **me!**.  If you are unable to help us set up, type the following into one of your server channels: **!authorizeUser <User>** where <User> is a user on the server.", guild.Name)
 		break
+	case config.GuildSetupStepLFGCategory:
+		message = fmt.Sprintf("In **%s**, what category should new LFG channels be created in? (If you don't have one, you'll need to create a category for them to go into.)", guild.Name)
 	case config.GuildSetupStepNewsletterURL:
 		message = fmt.Sprintf("In **%s**, what is the signup URL for your chapter newsletter? (ex: https://tempuri.org/signup.asp or noNews! if you don't have one.)", guild.Name)
 		break
 	case config.GuildSetupStepPastAttendeeRole:
 		message = fmt.Sprintf("In **%s**, what is the name of the role you would like to grant to previous attendees? (usually @PastAttendee)", guild.Name)
 		break
+	case config.GuildSetupStepComplete:
+		message = fmt.Sprintf("Configuration complete for server **%s**!", guild.Name)
+		break
 	}
 
-	utils.SendDMToUser(user.ID, message)
+	utils.SendDMToUser(config.Globals().Session, user.ID, message)
 }

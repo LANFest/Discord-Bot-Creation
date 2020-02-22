@@ -18,8 +18,8 @@ func WriteConfigDMCommandHandler(session *discordgo.Session, message *discordgo.
 		return false // wrong handler
 	}
 
-	if utils.IsOwner(message.Author) && utils.IsDM(message.Message) {
-		utils.WriteConfig()
+	if config.IsOwner(message.Author) && utils.IsDM(session, message.Message) {
+		config.WriteConfig()
 		session.ChannelMessageSend(message.ChannelID, "Config Data Recorded")
 	}
 	return true
@@ -31,7 +31,7 @@ func ShutdownDMCommandHandler(session *discordgo.Session, message *discordgo.Mes
 		return false // wrong handler
 	}
 
-	if utils.IsOwner(message.Author) && utils.IsDM(message.Message) {
+	if config.IsOwner(message.Author) && utils.IsDM(session, message.Message) {
 		session.ChannelMessageSend(message.ChannelID, "Buh-bye!")
 		utils.Shutdown(session)
 	}
