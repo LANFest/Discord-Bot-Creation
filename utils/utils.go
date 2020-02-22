@@ -118,3 +118,26 @@ func HasGuildPermission(session *discordgo.Session, guildID string, permissionMa
 
 	return false
 }
+
+// SendMessageToUser : Sends a message to a user (opening a DM if none exist.)
+func SendMessageToUser(userID string, message string) {
+	session := config.Globals().Session
+	channels, _ := session.UserChannels()
+	channel, ok := linq.From(channels).FirstWithT(func(uc *discordgo.Channel) bool {
+		recips := uc.Recipients
+		return len(recips) == 1 && recips[0].ID == userID
+	}).(*discordgo.Channel)
+
+	if !ok {
+		newChannel, channelErr := session.UserChannelCreate(userID)
+
+		if channelErr != nil {
+			Assert(fmt.Sprintf("Unable to create DM channel with %s in SendMessageToUser!", userID), channelErr, false)
+			return
+		}
+
+		channel = newChannel
+	}
+
+	session.ChannelMessageSend(channel.ID, message)
+}

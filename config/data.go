@@ -12,7 +12,7 @@ func Constants() ConstantsModel {
 
 	return ConstantsModel{
 		GuildCommandPrefix: "!",
-		DMCommandPrefix:    "?",
+		DMCommandPrefix:    "!",
 		ConfigFilePath:     "configData.json",
 		PartyOnLink:        "https://giphy.com/gifs/chuber-wayne-waynes-world-d3mlYwpf96kMuFjO",
 		StatusMessage:      "with your heart <3",
@@ -53,58 +53,46 @@ func GetLFGDataForChannel(guildID string, channelID string) *LFGData {
 	return nil
 }
 
-// BuildGuildSetupDataList : Builds a list of GuildSetupData objects
-func BuildGuildSetupDataList() []GuildSetupData {
-	var setups []GuildSetupData
+// BuildOwnerSetupDataList : Builds a list of GuildSetupData objects
+func BuildOwnerSetupDataList() {
 	for _, guild := range Globals().Session.State.Guilds {
 		guildData := FindGuildByID(guild.ID)
+
 		var newGuildSetup GuildSetupData
-		newGuildSetup.OwnerID = guild.OwnerID
+		newGuildSetup.GuildID = guild.ID
 
-		if guildData.AuthorizedUserID != "" {
-			newGuildSetup.AuthorizedUserID = guildData.AuthorizedUserID
+		newOwnerID := guildData.AuthorizedUserID
+
+		if guildData.AuthorizedUserID == "" {
+			newGuildSetup.SetupStep = GuildSetupStepConfirmAuthorizedUser
+			newOwnerID = guild.OwnerID
+		} else if guildData.LanFestURL == "" {
+			newGuildSetup.SetupStep = GuildSetupStepChapterURL
+		} else if guildData.NewsURL != "" {
+			newGuildSetup.SetupStep = GuildSetupStepNewsletterURL
+		} else if guildData.AnnounceChannelID != "" {
+			newGuildSetup.SetupStep = GuildSetupStepAnnouncementChannel
+		} else if guildData.AttendeeRoleID != "" {
+			newGuildSetup.SetupStep = GuildSetupStepAttendeeRole
+		} else if guildData.PastAttendeeRoleID != "" {
+			newGuildSetup.SetupStep = GuildSetupStepPastAttendeeRole
 		} else {
-			setups = append(setups, newGuildSetup)
+			// All of the setup data is complete, no need to add to the list.
 			continue
 		}
 
-		if guildData.LanFestURL != "" {
-			newGuildSetup.ChapterURL = guildData.LanFestURL
-		} else {
-			setups = append(setups, newGuildSetup)
-			continue
-		}
-
-		if guildData.NewsURL != "" {
-			newGuildSetup.NewsletterURL = guildData.NewsURL
-		} else {
-			setups = append(setups, newGuildSetup)
-			continue
-		}
-
-		if guildData.AnnounceChannelID != "" {
-			newGuildSetup.AnnouncementChannelID = guildData.AnnounceChannelID
-		} else {
-			setups = append(setups, newGuildSetup)
-			continue
-		}
-
-		if guildData.AttendeeRoleID != "" {
-			newGuildSetup.AttendeeRoleID = guildData.AttendeeRoleID
-		} else {
-			setups = append(setups, newGuildSetup)
-			continue
-		}
-
-		if guildData.PastAttendeeRoleID != "" {
-			newGuildSetup.PastAttendeeRoleID = guildData.PastAttendeeRoleID
-		} else {
-			setups = append(setups, newGuildSetup)
-			continue
-		}
-
-		// All of the setup data is complete, no need to add to the list.
+		upsertGuildSetup(newGuildSetup, newOwnerID)
 	}
+}
 
-	return setups
+func upsertGuildSetup(guildSetup GuildSetupData, ownerID string) {
+	ownerSetup, ok := linq.From(Globals().OwnerSetups).FirstWithT(func(o OwnerSetups) bool { return o.OwnerID == ownerID }).(OwnerSetups)
+	if ok {
+		ownerSetup.GuildSetups = append(ownerSetup.GuildSetups, guildSetup)
+	} else {
+		var newOwnerSetup OwnerSetups
+		newOwnerSetup.OwnerID = ownerID
+		newOwnerSetup.GuildSetups = []GuildSetupData{guildSetup}
+		Globals().OwnerSetups = append(Globals().OwnerSetups, newOwnerSetup)
+	}
 }

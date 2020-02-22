@@ -45,12 +45,16 @@ func main() {
 	utils.ReadConfig()
 
 	// Set up command handlers
-	globalData.CommandHandlers = []interface{}{
+	globalData.GuildCommandHandlers = []interface{}{
 		chapter.PartyOnCommandHandler,
-		admin.WriteConfigCommandHandler,
-		admin.ShutdownCommandHandler,
+	}
+
+	globalData.DMCommandHandlers = []interface{}{
+		admin.WriteConfigDMCommandHandler,
+		admin.ShutdownDMCommandHandler,
 		user.LFGCommandHandler,
 	}
+
 	globalData.ReactionAddHandlers = []interface{}{
 		user.LFGChannelMessageReactionAdd,
 	}
@@ -118,10 +122,10 @@ func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 	utils.LPrintf("Servers (%d):", len(servers))
 	for _, server := range servers {
 		utils.LPrintf("%s - %s", server.Name, server.ID)
-		validateGuildCoreData(server, config.FindGuildByID(server.ID)) // utils.FindGuildByID has a side-effect of putting the server into the global collection
+		validateGuildCoreData(server, config.FindGuildByID(server.ID)) // config.FindGuildByID has a side-effect of putting the server into the global collection
 	}
 
-	globalData.GuildSetups = config.BuildGuildSetupDataList()
+	config.BuildOwnerSetupDataList()
 	chapter.PromptSetupSteps()
 
 	utils.WriteConfig()
@@ -166,7 +170,7 @@ func coreReactionRemoveHandler(session *discordgo.Session, reaction *discordgo.M
 }
 
 func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildData) {
-	var foundLFG, foundAnnounce, foundAttendee, foundPastAttendee bool // Are the values in the model good?
+	var foundLFG, foundAnnounce, foundAttendee, foundPastAttendee, foundAuthorizedUserID bool // Are the values in the model good?
 
 	// Run through the channels
 	for _, channel := range guild.Channels {
@@ -174,18 +178,6 @@ func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildD
 			foundLFG = true
 		} else if channel.ID == guildDataModel.AnnounceChannelID { // Found our AnnounceChannel! Still good.
 			foundAnnounce = true
-			// } else {
-			// 	switch channel.Type {
-			// 	case discordgo.ChannelTypeGuildCategory:
-			// 		if strings.ToLower(channel.Name) == "lfg" && guildDataModel.LFGCategoryID == "" { // We only want to set if it's blank.
-			// 			guildDataModel.LFGCategoryID = channel.ID
-			// 		}
-			// 		break
-			// 	case discordgo.ChannelTypeGuildText:
-			// 		if strings.ToLower(channel.Name) == "announcements" && guildDataModel.AnnounceChannelID == "" { // We only want to set if it's blank.
-			// 			guildDataModel.AnnounceChannelID = channel.ID
-			// 		}
-			// 	}
 		}
 	}
 
@@ -202,12 +194,6 @@ func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildD
 			foundAttendee = true
 		} else if role.ID == guildDataModel.PastAttendeeRoleID { // Found our PastAttendeeRole! Still good.
 			foundPastAttendee = true
-			// } else {
-			// 	if strings.ToLower(role.Name) == "attendee" && guildDataModel.AttendeeRoleID == "" { // We only want to set if it's blank.
-			// 		guildDataModel.AttendeeRoleID = role.ID
-			// 	} else if strings.ToLower(role.Name) == "pastattendee" && guildDataModel.PastAttendeeRoleID == "" { // We only want to set if it's blank.
-			// 		guildDataModel.PastAttendeeRoleID = role.ID
-			// 	}
 		}
 	}
 
@@ -217,5 +203,16 @@ func validateGuildCoreData(guild *discordgo.Guild, guildDataModel *config.GuildD
 
 	if !foundPastAttendee {
 		guildDataModel.PastAttendeeRoleID = ""
+	}
+
+	for _, member := range guild.Members {
+		if member.User.ID == guildDataModel.AuthorizedUserID { // Found our AuthorizedUser! Still good.
+			foundAuthorizedUserID = true
+			break
+		}
+	}
+
+	if !foundAuthorizedUserID {
+		guildDataModel.AuthorizedUserID = ""
 	}
 }

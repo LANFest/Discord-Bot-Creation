@@ -51,16 +51,16 @@ type LFGData struct {
 	CreateDate time.Time `json:"createDate"`
 }
 
+// OwnerSetups : Dictionary of Guilds to be Set Up by a user.
+type OwnerSetups struct {
+	OwnerID     string
+	GuildSetups []GuildSetupData
+}
+
 // GuildSetupData : Data structure for guilds that have not been completely set up yet.
 type GuildSetupData struct {
-	OwnerID               string
-	AuthorizedUserID      string
-	GuildID               string
-	ChapterURL            string
-	NewsletterURL         string
-	AnnouncementChannelID string
-	AttendeeRoleID        string
-	PastAttendeeRoleID    string
+	GuildID   string
+	SetupStep GuildSetupStep
 }
 
 // GlobalDataModel : Struct for internal data used across the bot.
@@ -74,7 +74,7 @@ type GlobalDataModel struct {
 	ReactionDeleteHandlers []interface{}
 	Owner                  *discordgo.User
 	Session                *discordgo.Session
-	GuildSetups            []GuildSetupData
+	OwnerSetups            []OwnerSetups
 }
 
 // GuildSetupStep : Ordered setup steps for a guild
