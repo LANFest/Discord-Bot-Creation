@@ -1,18 +1,19 @@
 package user
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/bwmarrin/discordgo"
 )
 
+// ThumbsUpEmoji : URLEncoded version of the thumbs-up emoji used in some messaging.
 const ThumbsUpEmoji = "%F0%9F%91%8D"
 
+// CreateLFGChannel : Utility method for creating a LFG Channel
 func CreateLFGChannel(session *discordgo.Session, category *discordgo.Channel, gameName string) (*discordgo.Channel, error) {
 	if category.Type != discordgo.ChannelTypeGuildCategory {
-		return nil, errors.New(fmt.Sprintf("Unable to find LFG Category! - Received: %s", category.Name))
+		return nil, fmt.Errorf("Unable to find LFG Category! - Received: %s", category.Name)
 	}
 
 	guild, _ := session.Guild(category.GuildID)
@@ -27,7 +28,7 @@ func CreateLFGChannel(session *discordgo.Session, category *discordgo.Channel, g
 		}
 	}
 
-	return nil, errors.New(fmt.Sprintf("Ran out of available channel space for %s -- Perhaps you could join an existing group.", gameName))
+	return nil, fmt.Errorf("Ran out of available channel space for %s -- Perhaps you could join an existing group", gameName)
 }
 
 func newLFGChannelName(gameName string, number int) string {
