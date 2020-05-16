@@ -25,7 +25,7 @@ func main() {
 
 	globalData.Token = string(file)
 
-	discord, err := discordgo.New("Bot " + globalData.Token)
+	discord, err := discordgo.New("Bot " + strings.TrimSpace(globalData.Token))
 	// Uncomment the below line to have discordgo dump War and Peace into your buffer on every command.
 	//discord.Debug = true
 	utils.Assert("Error creating discord session", err, true)
@@ -50,12 +50,12 @@ func main() {
 	// Set up command handlers
 	globalData.GuildCommandHandlers = []interface{}{
 		chapter.PartyOnCommandHandler,
+		user.LFGCommandHandler,
 	}
 
 	globalData.DMCommandHandlers = []interface{}{
 		admin.WriteConfigDMCommandHandler,
 		admin.ShutdownDMCommandHandler,
-		user.LFGCommandHandler,
 	}
 
 	globalData.ReactionAddHandlers = []interface{}{
@@ -80,7 +80,7 @@ func coreBotJoinHandler(session *discordgo.Session, guildCreate *discordgo.Guild
 	if setupStep != config.GuildSetupStepComplete {
 		// First, do we already have an existing GuildSetup for this? (stale data, maybe?)
 		ownerSetup, ok := linq.From(config.Globals().OwnerSetups).FirstWithT(func(os config.OwnerSetups) bool {
-			anyGS := linq.From(os.GuildSetups).AnyWithT(func(gs *config.GuildSetupData) bool { return gs.GuildID == guildCreate.Guild.ID })
+			anyGS := linq.From(os.GuildSetups).AnyWithT(func(gs config.GuildSetupData) bool { return gs.GuildID == guildCreate.Guild.ID })
 			return anyGS
 		}).(config.OwnerSetups)
 
@@ -169,8 +169,10 @@ func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 	servers := discord.State.Guilds
 	utils.LPrintf("Servers (%d):", len(servers))
 	for _, server := range servers {
-		utils.LPrintf("%s - %s", server.Name, server.ID)
-		validateGuildCoreData(server, config.FindGuildByID(server.ID)) // config.FindGuildByID has a side-effect of putting the server into the global collection
+		guild, err := discord.Guild(server.ID)
+		utils.Assert("Error Getting Guild Data", err, false)
+		utils.LPrintf("%s - %s", guild.Name, guild.ID)
+		validateGuildCoreData(guild, config.FindGuildByID(guild.ID)) // config.FindGuildByID has a side-effect of putting the server into the global collection
 	}
 
 	config.BuildOwnerSetupDataList()

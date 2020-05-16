@@ -72,13 +72,15 @@ func IsChannelType(session *discordgo.Session, message *discordgo.Message, chanT
 // HasGuildPermission : Do I have the specified permission?
 func HasGuildPermission(session *discordgo.Session, guildID string, permissionMask uint) bool {
 	// Get the guild member
-	guildMember, guildErr := session.GuildMember(guildID, "@me")
+	guildMember, guildErr := session.GuildMember(guildID, session.State.User.ID)
 	if guildErr != nil {
+		LPrint("HasGuildPermission could not find Member")
 		return false
 	}
 
 	guildRoles, guildErr := session.GuildRoles(guildID)
 	if guildErr != nil {
+		LPrint("HasGuildPermission could not find Roles")
 		return false
 	}
 

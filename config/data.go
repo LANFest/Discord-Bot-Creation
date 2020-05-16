@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -60,6 +61,7 @@ func GetLFGDataForChannel(guildID string, channelID string) *LFGData {
 // BuildOwnerSetupDataList : Builds a list of GuildSetupData objects
 func BuildOwnerSetupDataList() {
 	for _, guild := range Globals().Session.State.Guilds {
+		fmt.Printf(("%+v"), guild)
 		guildData := FindGuildByID(guild.ID)
 
 		var newGuildSetup GuildSetupData

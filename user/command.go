@@ -29,10 +29,11 @@ func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCre
 	// Should we only allow it during an event?
 
 	handled = true // Yep, this is ours.
-	commandRegex := regexp.MustCompile("^" + config.Constants().GuildCommandPrefix + "lfg \"(.+)\" (\\d+)$")
+	commandRegex := regexp.MustCompile("^\\" + config.Constants().GuildCommandPrefix + "lfg \"(.+)\" (\\d+)$")
 	commandArgs := commandRegex.FindStringSubmatch(message.Content)
 	if len(commandArgs) < 3 {
 		session.ChannelMessageSend(message.ChannelID, "Usage: !lfg \"<Game Name>\" <NumberOfPlayers>")
+		utils.LPrint("Sending Usage for !lfg")
 		return handled
 	}
 
@@ -44,15 +45,17 @@ func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCre
 	capacity, _ := strconv.Atoi(capacityRaw)
 	if capacity < 2 {
 		session.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Incorrect number of players! - %s", capacityRaw))
+		utils.LPrint("Missing Capacity!")
 		return handled
 	}
 
 	guildModel := config.FindGuildByID(message.GuildID)
 	guild, _ := session.Guild(guildModel.GuildID)
 
-	rawCategory := linq.From(guild.Channels).FirstWithT(func(c *discordgo.Channel) bool { return c.ID == guildModel.LFGCategoryID })
-	var category *discordgo.Channel
-	if rawCategory == nil {
+	utils.LPrintf("%+v", guild)
+
+	category, _ := linq.From(guild.Channels).FirstWithT(func(c *discordgo.Channel) bool { return c.ID == guildModel.LFGCategoryID }).(*discordgo.Channel)
+	if category == nil {
 		// No category! Let's make one.
 		if !utils.HasGuildPermission(session, guild.ID, discordgo.PermissionManageChannels) {
 			session.ChannelMessageSend(message.ChannelID, "I can't create a channel! Please contact a server administrator.")
