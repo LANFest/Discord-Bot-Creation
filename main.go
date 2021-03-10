@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	gameLib map[string]string
+	gameLib map[string][]string
 )
 
 func main() {
