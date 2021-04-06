@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/LANFest/Discord-Bot-Creation/utils"
@@ -77,7 +78,7 @@ func BuildOwnerSetupDataList() {
 		}
 
 		if Constants().DebugOutput {
-			utils.LogErrorf("BuildOwnerSetupDataList", "Guild Setup for %s : %d", guild.Name, newGuildSetup.SetupStep)
+			log.Printf("Guild Setup for %s : %d", guild.Name, newGuildSetup.SetupStep)
 		}
 	}
 }

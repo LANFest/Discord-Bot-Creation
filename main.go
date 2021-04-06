@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"strings"
 
 	"github.com/LANFest/Discord-Bot-Creation/admin"
@@ -19,6 +20,7 @@ var (
 )
 
 func main() {
+	log.SetFlags(log.Ldate | log.Lmsgprefix | log.Lshortfile | log.Ltime | log.Lmsgprefix)
 	globalData := config.Globals()
 	file, readError := ioutil.ReadFile("token.txt")
 	utils.Assert("Error reading token file", readError, true)
@@ -36,7 +38,7 @@ func main() {
 		yamlErr = yaml.Unmarshal(gameLibFile, &gameLib)
 	}
 	if err != nil || yamlErr != nil {
-		utils.LogErrorf("Main", "%s %s Error loading game library config file. LFG and game matching features will not work.", err, yamlErr)
+		log.Printf("%s %s Error loading game library config file. LFG and game matching features will not work.", err, yamlErr)
 	}
 
 	discord.AddHandler(coreReadyHandler)
@@ -70,7 +72,7 @@ func main() {
 }
 
 func coreBotJoinHandler(session *discordgo.Session, guildCreate *discordgo.GuildCreate) {
-	utils.LPrintf("Joining %s - %s", guildCreate.Guild.Name, guildCreate.Guild.ID)
+	log.Printf("Joining %s - %s", guildCreate.Guild.Name, guildCreate.Guild.ID)
 	guildData := config.FindGuildByID(guildCreate.Guild.ID)
 	validateGuildCoreData(guildCreate.Guild, guildData) // config.FindGuildByID has a side-effect of putting the server into the global collection
 
@@ -95,7 +97,7 @@ func coreBotJoinHandler(session *discordgo.Session, guildCreate *discordgo.Guild
 		// We've potentially done an upsert.  We should fetch out of the globals again.
 		ownerSetup, ok = linq.From(config.Globals().OwnerSetups).FirstWithT(func(os config.OwnerSetups) bool {
 			anyGS := linq.From(os.GuildSetups).AnyWithT(func(gs config.GuildSetupData) bool { return gs.GuildID == guildCreate.Guild.ID })
-			utils.LPrintf("%d", anyGS)
+			log.Printf("%d", anyGS)
 			return anyGS
 		}).(config.OwnerSetups)
 
@@ -103,7 +105,7 @@ func coreBotJoinHandler(session *discordgo.Session, guildCreate *discordgo.Guild
 		if ownerSetup.GuildSetups[0].GuildID == guildCreate.Guild.ID {
 			owner, ownerError := session.User(guildCreate.Guild.OwnerID)
 			if ownerError != nil {
-				utils.LogErrorf("coreBotJoinHandler", "Unable to find Owner by ID - %s", guildCreate.Guild.OwnerID)
+				log.Printf("Unable to find Owner by ID - %s", guildCreate.Guild.OwnerID)
 				return
 			}
 			chapter.PromptSetupStepByUser(owner, guildCreate.Guild, setupStep)
@@ -143,7 +145,7 @@ func coreMessageHandler(session *discordgo.Session, message *discordgo.MessageCr
 	}
 
 	if config.Constants().DebugOutput {
-		utils.LogErrorf("Main", "Message: %+v || From: %s", message.Message, message.Author)
+		log.Printf("Message: %+v || From: %s", message.Message, message.Author)
 	}
 }
 
@@ -155,21 +157,21 @@ func coreReadyHandler(discord *discordgo.Session, ready *discordgo.Ready) {
 
 	// Who are we?
 	globalData.Bot = discord.State.Ready.User
-	utils.LogError("Main", "Bot Connected!")
+	log.Print("Bot Connected!")
 
 	// Who's the owner?
 	application, appError := discord.Application("@me")
 	utils.Assert("Could not find application!", appError, true)
 	globalData.Owner = application.Owner
-	utils.LPrintf("Application: %s - Owner: %s", application.Name, application.Owner.String())
-	utils.LPrintf("User: %s -  ID: %s\n", globalData.Bot.String(), globalData.Bot.ID)
-	utils.LPrintf("-----------------------------------------")
+	log.Printf("Application: %s - Owner: %s", application.Name, application.Owner.String())
+	log.Printf("User: %s -  ID: %s\n", globalData.Bot.String(), globalData.Bot.ID)
+	log.Print("-----------------------------------------")
 
 	// Where are we?
 	servers := discord.State.Guilds
-	utils.LPrintf("Servers (%d):", len(servers))
+	log.Printf("Servers (%d):", len(servers))
 	for _, server := range servers {
-		utils.LPrintf("%s - %s", server.Name, server.ID)
+		log.Printf("%s - %s", server.Name, server.ID)
 		validateGuildCoreData(server, config.FindGuildByID(server.ID)) // config.FindGuildByID has a side-effect of putting the server into the global collection
 	}
 
@@ -194,7 +196,7 @@ func coreReactionAddHandler(session *discordgo.Session, reaction *discordgo.Mess
 	}
 
 	if config.Constants().DebugOutput {
-		utils.LPrintf("Reaction Add: %+v || From: %s", reaction, user)
+		log.Printf("Reaction Add: %+v || From: %s", reaction, user)
 	}
 }
 
@@ -213,7 +215,7 @@ func coreReactionRemoveHandler(session *discordgo.Session, reaction *discordgo.M
 	}
 
 	if config.Constants().DebugOutput {
-		utils.LPrintf("Reaction Delete: %+v || From: %s", reaction, user)
+		log.Printf("Reaction Delete: %+v || From: %s", reaction, user)
 	}
 }
 

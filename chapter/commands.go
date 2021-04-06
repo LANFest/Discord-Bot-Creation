@@ -6,6 +6,7 @@ package chapter
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
@@ -63,24 +64,24 @@ func PartyOnCommandHandler(session *discordgo.Session, message *discordgo.Messag
 
 // ConfigResponseDMHandler : parses DMs from Chapter Heads to listen for answers to configuration questions.
 func ConfigResponseDMHandler(session *discordgo.Session, user *discordgo.User, message *discordgo.MessageCreate) {
-	utils.LPrintf("%+v", config.Globals().OwnerSetups)
+	log.Printf("%+v", config.Globals().OwnerSetups)
 
 	// Validate our data
 	ownerSetup, ok := linq.From(config.Globals().OwnerSetups).FirstWithT(func(os config.OwnerSetups) bool { return os.OwnerID == user.ID }).(config.OwnerSetups)
 	if !ok {
-		utils.LogErrorf("ConfigResponseDMHandler", "Unable to find OwnerSetup for user %s.  How did we get here?!?!", user.ID)
+		log.Printf("Unable to find OwnerSetup for user %s.  How did we get here?!?!", user.ID)
 		return
 	}
 
 	if len(ownerSetup.GuildSetups) < 1 {
-		utils.LogErrorf("ConfigResponseDMHandler", "Found OwnerSetup but no GuildSetups for user %s.  How did we get here?!?!", user.ID)
+		log.Printf("Found OwnerSetup but no GuildSetups for user %s.  How did we get here?!?!", user.ID)
 		return
 	}
 
 	guildSetup := &ownerSetup.GuildSetups[0]
 	guild, guildErr := session.Guild(guildSetup.GuildID)
 	if guildErr != nil {
-		utils.LogErrorf("ConfigResponseDMHandler", "Guild %s doesn't exist!", guildSetup.GuildID)
+		log.Printf("Guild %s doesn't exist!", guildSetup.GuildID)
 		return
 	}
 
@@ -116,7 +117,7 @@ func ConfigResponseDMHandler(session *discordgo.Session, user *discordgo.User, m
 		break
 
 	case config.GuildSetupStepComplete:
-		utils.LogErrorf("ConfigResponseDMHandler", "Found GuildSetupStepComplete on a current GuildSetup! - %s", guild.ID)
+		log.Printf("Found GuildSetupStepComplete on a current GuildSetup! - %s", guild.ID)
 		return
 
 	case config.GuildSetupStepConfirmAuthorizedUser:

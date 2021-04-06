@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/ahmetb/go-linq/v3"
@@ -12,13 +13,13 @@ import (
 func FindRole(session *discordgo.Session, guildID string, roleID string) *discordgo.Role {
 	tempGuild, guildError := session.Guild(guildID)
 	if guildError != nil {
-		LogErrorf("FindRole", "Missing Guild: %s", guildID)
+		log.Printf("Missing Guild: %s", guildID)
 		return nil
 	}
 
 	role, ok := linq.From(tempGuild.Roles).FirstWithT(func(r *discordgo.Role) bool { return r.ID == roleID }).(*discordgo.Role)
 	if !ok {
-		LogErrorf("FindRole", "Missing Role %s in Guild %s", roleID, guildID)
+		log.Printf("Missing Role %s in Guild %s", roleID, guildID)
 		return nil
 	}
 
@@ -46,7 +47,7 @@ func FindChannelByName(guild *discordgo.Guild, channelType discordgo.ChannelType
 	}).(*discordgo.Channel)
 
 	if !ok {
-		LogErrorf("FindChannelByName", "Could not find text Channel named |%s| in Guild %s", channelName, guild.ID)
+		log.Printf("Could not find text Channel named |%s| in Guild %s", channelName, guild.ID)
 		return nil
 	}
 

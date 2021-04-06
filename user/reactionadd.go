@@ -2,11 +2,11 @@ package user
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
 	"github.com/LANFest/Discord-Bot-Creation/config"
-	"github.com/LANFest/Discord-Bot-Creation/utils"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/bwmarrin/discordgo"
 )
@@ -47,7 +47,7 @@ func LFGChannelMessageReactionAdd(session *discordgo.Session, reaction *discordg
 		owner, ownerError := session.GuildMember(reaction.GuildID, lfgData.OwnerID)
 		if ownerError != nil {
 			resultMessage = fmt.Sprintf("Unable to find LFG Owner - %s", lfgData.OwnerID)
-			utils.LPrintf("LFGChannelMessageReactionAdd: %s", resultMessage)
+			log.Printf("LFGChannelMessageReactionAdd: %s", resultMessage)
 		} else {
 			resultMessage = fmt.Sprintf("%s -- your group is ready!  Members: %s", owner.Mention(), strings.Join(readyUserMentions, " "))
 		}
