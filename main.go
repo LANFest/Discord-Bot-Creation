@@ -95,7 +95,7 @@ func coreBotJoinHandler(session *discordgo.Session, guildCreate *discordgo.Guild
 		// We've potentially done an upsert.  We should fetch out of the globals again.
 		ownerSetup, ok = linq.From(config.Globals().OwnerSetups).FirstWithT(func(os config.OwnerSetups) bool {
 			anyGS := linq.From(os.GuildSetups).AnyWithT(func(gs config.GuildSetupData) bool { return gs.GuildID == guildCreate.Guild.ID })
-			utils.LPrintf("%d", anyGS)
+			utils.LPrintf("%v", anyGS)
 			return anyGS
 		}).(config.OwnerSetups)
 
