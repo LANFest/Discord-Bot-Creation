@@ -6,6 +6,7 @@ package user
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -56,14 +57,14 @@ func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCre
 		// No category! Let's make one.
 		if !utils.HasGuildPermission(session, guild.ID, discordgo.PermissionManageChannels) {
 			session.ChannelMessageSend(message.ChannelID, "I can't create a channel! Please contact a server administrator.")
-			utils.LPrint("Unable to create LFG Category: No permissions")
+			log.Print("Unable to create LFG Category: No permissions")
 			return handled
 		}
 
 		newCategory, newCatErr := session.GuildChannelCreate(guild.ID, "LFG", discordgo.ChannelTypeGuildCategory)
 		if newCatErr != nil {
 			session.ChannelMessageSend(message.ChannelID, "Unable to create channel. Please contact a server administrator.")
-			utils.LPrintf("Unable to create LFG Category: %s", newCatErr)
+			log.Printf("Unable to create LFG Category: %s", newCatErr)
 			return handled
 		}
 
@@ -75,7 +76,7 @@ func LFGCommandHandler(session *discordgo.Session, message *discordgo.MessageCre
 	if newChannelErr != nil {
 		errMsg := fmt.Sprintf("Unable to create LFG Channel: %s", newChannelErr)
 		session.ChannelMessageSend(message.ChannelID, errMsg)
-		utils.LPrint(errMsg)
+		log.Print(errMsg)
 		return handled
 	}
 
